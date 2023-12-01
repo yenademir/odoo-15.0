@@ -83,11 +83,11 @@
             <xpath expr="//field[@name='partner_shipping_id']" position="after">
                 <field name="company_id" string="Company (Seller)"/>
                 <field name="user_id" string="Sales Person (E-mail Sender)"/>
-                <field name="opportunity_id" />
+                <!--<field name="opportunity_id" />-->
                 <field name="incoterm" required="1"/>
                 <field name="payment_term_id"/>
                 <field name="currency_id"/>
-                <field name="quota_cancel_reason_id" attrs="{'invisible': [('state', '!=', 'cancel')]}"/>
+                <!--<field name="quota_cancel_reason_id" attrs="{'invisible': [('state', '!=', 'cancel')]}"/>-->
             </xpath>
             <xpath expr="//field[@name='validity_date']" position="after">
                 <field name="rfq_date"/>
@@ -128,9 +128,9 @@
             <xpath expr="//field[@name='validity_date']" position="attributes">
                 <attribute name="string">Validtiy of Offer</attribute>
             </xpath>
-            <xpath expr="//field[@name='quota_cancel_reason_id']" position="attributes">
+            <!--<xpath expr="//field[@name='quota_cancel_reason_id']" position="attributes">
                 <attribute name="string">Quotation Lost Reason</attribute>
-            </xpath>
+            </xpath>-->
             <xpath expr="//field[@name='date_order']" position="attributes">
                 <attribute name="string">Confirmation Date</attribute>
             </xpath>

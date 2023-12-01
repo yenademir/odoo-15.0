@@ -1,0 +1,20 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<odoo>
+    <record id="view_stock_picking_batch_form_inherit" model="ir.ui.view">
+        <field name="name">stock.picking.batch.form.inherit</field>
+        <field name="model">stock.picking.batch</field>
+        <field name="inherit_id" ref="stock_picking_batch.stock_picking_batch_form"/>
+        <field name="arch" type="xml">
+            <xpath expr="//notebook" position="inside">
+                <page string="Packaging Preparation">
+                    <field name="packaging_preparation_ids">
+                        <tree editable="bottom">
+                            <field name="name"/>
+                            <!-- Diğer alanlarınız buraya gelebilir -->
+                        </tree>
+                    </field>
+                </page>
+            </xpath>
+        </field>
+    </record>
+</odoo>

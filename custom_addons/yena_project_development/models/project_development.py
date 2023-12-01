@@ -1,11 +1,11 @@
 from odoo import models,fields,api
 
 class Project(models.Model):
-    _inherit='project.project'
+    _inherit = 'project.project'
 
-    sales_count=fields.Integer(string="Sales", compute="_compute_sales_count")
+    sales_count = fields.Integer(string="Sales", compute="_compute_sales_count")
     purchase_count = fields.Integer(string='Purchases', compute='_compute_purchase_count')
-    delivery_count=fields.Integer(string="Delivery Count",compute="_compute_delivery_count")
+    delivery_count = fields.Integer(string="Delivery Count",compute="_compute_delivery_count")
     #delivery inventory 
     
 

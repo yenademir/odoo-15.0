@@ -39,7 +39,7 @@
             
             <xpath expr="//field[@name='categ_id']" position="after">
                 <field name="customer" string="Customer of Product" required="1"/>
-                <field name="hs_code"/>
+                <!--<field name="hs_code"/>-->
                 <field name="hs_code_description" invisible="1"/>
                 <label for="hs_code_description" string="Well Known (YENA Example)"/>
                 <div class="font-italic text-muted">

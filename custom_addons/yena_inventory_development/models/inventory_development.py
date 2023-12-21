@@ -14,6 +14,9 @@ class Picking(models.Model):
         ("arrived", "Arrived")
     ], string="Situation")
     transportation_code = fields.Char(string="Transportation Code")
+    sale_id=fields.Many2one("sale.order",string="Sale Order")
+    purchase_id=fields.Many2one("purchase.order",string="Purchase Order")
+    sequence_code = fields.Char(string='Sequence Code', related='picking_type_id.sequence_code', store=True)
     
 class StockMove(models.Model):
     _inherit = "stock.move"

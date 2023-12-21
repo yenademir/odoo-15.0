@@ -15,9 +15,10 @@ class PurchaseOrder(models.Model):
 
     @api.onchange('project_purchase')
     def _onchange_project_purchase(self):
-        analytic_account = self.project_purchase.analytic_account_id
-        for line in self.order_line:
-            line.account_analytic_id = analytic_account.id
+        if self.project_purchase and hasattr(self.project_purchase, 'analytic_account_id'):
+            analytic_account = self.project_purchase.analytic_account_id
+            for line in self.order_line:
+                line.account_analytic_id = analytic_account.id
 
     def button_confirm(self):
         res = super(PurchaseOrder, self).button_confirm()

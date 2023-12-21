@@ -10,6 +10,7 @@
     'data': [
         'views/packaging_preparation.xml',
         'security/ir.model.access.csv',
+        'reports/packaging_preparation_report.xml',
     ],
     'installable': True,
     'auto_install': False,

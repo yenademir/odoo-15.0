@@ -39,7 +39,7 @@
             
             <xpath expr="//field[@name='categ_id']" position="after">
                 <field name="customer" string="Customer of Product" required="1"/>
-                <!--<field name="hs_code"/>-->
+                <field name="hs_code"/>
                 <field name="hs_code_description" invisible="1"/>
                 <label for="hs_code_description" string="Well Known (YENA Example)"/>
                 <div class="font-italic text-muted">
@@ -149,6 +149,44 @@
                 <field name="transportation_code" groupby="transportation_code"/>
                 <field name="situation" />
             </tree>
+        </field>
+    </record>
+    <record id="transfer_view_form_yena" model="ir.ui.view">
+        <field name="name">transfer.view.yena.form</field>
+        <field name="model">stock.picking</field>
+        <field name="inherit_id" ref="stock.view_picking_form"/>
+        <field name="arch" type="xml">
+            <!-- <xpath expr="//field[@name='document_number']" position="replace"/>          -->
+            <!--<xpath expr="//page[@name='extra']//field[@name='company_id']" position="after">
+                <field name="document_number"/>
+            </xpath>-->
+            <xpath expr="//field[@name='picking_type_id']"  position="after">
+                <field name="project_transfer" widget="many2many_tags"/>
+                <field name="sequence_code"  attrs="{'invisible': 1}"/>
+                <field name="sale_id" attrs="{'invisible': [('sequence_code', '!=', 'OUT')]}"/>
+                <field name="purchase_id" attrs="{'invisible': [('sequence_code', '!=', 'IN')]}"/>
+            </xpath>
+            <xpath expr="//field[@name='partner_id']"  position="after"> <!-- bu şekilde görünüme geliyor mu kontrol et-->
+                <field name="transportation_code"/>
+            </xpath>
+ 
+            <xpath expr="//field[@name='origin']" position="replace"/>
+           
+            <!--<xpath expr="//field[@name='date_done']"  position="after">
+                <field name="arrival_date" attrs="{'invisible': [('sequence_code', '!=', 'OUT')]}"/>
+            </xpath>-->
+        </field>
+    </record>
+ 
+    <record id="inventory_transfer_stock_vpicking_yena" model="ir.ui.view">
+        <field name="name">stock.vpicking.tree.yena</field>
+        <field name="model">stock.picking</field>
+        <field name="inherit_id" ref="delivery.vpicktree_view_tree"/>
+        <field name="arch" type="xml">
+            <xpath expr="//field[@name='name']" position="after"> <!-- kontrol burası da gerçekten geliyor mu bi bak -->
+                <field name="project_transfer" widget="many2many_tags"/>
+                <field name="transportation_code"/>
+            </xpath>
         </field>
     </record>
     <record id="transportation_follow_up" model="ir.actions.act_window">

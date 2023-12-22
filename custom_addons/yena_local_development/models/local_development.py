@@ -8,3 +8,13 @@ class SaleOrder(models.Model):
         string='Incoterm', 
         help='International Commercial Terms are a series of pre-defined commercial terms used in international transactions.'
     )
+
+class StockPicking(models.Model):
+    _inherit = 'stock.picking'
+
+    document_number = fields.Char(
+        string='Document Number', 
+    )
+    arrival_date = fields.Date(
+        string='Arrival Date',
+    )

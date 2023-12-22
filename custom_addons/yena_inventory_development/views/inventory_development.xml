@@ -25,6 +25,22 @@
         </field>
     </record>
 <data>
+    <record id="view_transfer_form_inherit" model="ir.ui.view">
+        <field name="name">transfer.form.inherit.yena</field>
+        <field name="model">stock.picking</field>
+        <field name="inherit_id" ref="stock.view_picking_form" />
+        <field name="arch" type="xml">
+            <xpath expr="//field[@name='picking_type_id']" position="after">
+                <field name="origin"/>
+            </xpath>
+            <xpath expr="//field[@name='origin']" position="after">
+                <field name="arrival_date" />
+                <field name="transportation_code" />
+                <field name="situation" />
+                <field name="project_transfer"  widget="many2many_tags"/>
+            </xpath>
+        </field>
+    </record>
     <record id="product_template_main_form_inherit_yena" model="ir.ui.view">
         <field name="name">product.template.form.inherit.yena</field>
         <field name="model">product.template</field>
@@ -157,24 +173,19 @@
         <field name="inherit_id" ref="stock.view_picking_form"/>
         <field name="arch" type="xml">
             <!-- <xpath expr="//field[@name='document_number']" position="replace"/>          -->
-            <!--<xpath expr="//page[@name='extra']//field[@name='company_id']" position="after">
+            <xpath expr="//page[@name='extra']//field[@name='company_id']" position="after">
                 <field name="document_number"/>
-            </xpath>-->
+            </xpath>
             <xpath expr="//field[@name='picking_type_id']"  position="after">
-                <field name="project_transfer" widget="many2many_tags"/>
                 <field name="sequence_code"  attrs="{'invisible': 1}"/>
                 <field name="sale_id" attrs="{'invisible': [('sequence_code', '!=', 'OUT')]}"/>
                 <field name="purchase_id" attrs="{'invisible': [('sequence_code', '!=', 'IN')]}"/>
             </xpath>
-            <xpath expr="//field[@name='partner_id']"  position="after"> <!-- bu şekilde görünüme geliyor mu kontrol et-->
-                <field name="transportation_code"/>
-            </xpath>
- 
             <xpath expr="//field[@name='origin']" position="replace"/>
            
-            <!--<xpath expr="//field[@name='date_done']"  position="after">
+            <xpath expr="//field[@name='date_done']"  position="after">
                 <field name="arrival_date" attrs="{'invisible': [('sequence_code', '!=', 'OUT')]}"/>
-            </xpath>-->
+            </xpath>
         </field>
     </record>
  

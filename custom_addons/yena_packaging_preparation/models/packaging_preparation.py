@@ -43,27 +43,71 @@ class StockPickingBatch(models.Model):
         PackagingPreparation = self.env['packaging.preparation']
         for batch in self:
             for line in batch.move_line_ids:
-                num_of_packages = int(round(line.product_uom_qty / (line.package_quantity or 1)))
-                for _ in range(num_of_packages):
+                # Eğer package_quantity tanımlı ve 0'dan büyükse
+                if line.package_quantity <= 0 or line.package_quantity is False:
+                    # Transfer edilen toplam adeti kullanarak tek bir kayıt oluştur
                     vals = {
-                        'name': line.product_id.name,
-                        'batch_id': batch.id,
-                        'customer_reference': line.customer_reference,
-                        'product_id': line.product_id.id,
-                        'package_quantity': line.package_quantity,
-                        'description': line.product_id.description_sale,
-                        'origin' : line.product_id.origin_country_id.name,
-                        'unit_of_measure': line.product_uom_id.id,
-                        'unit_net_weight': line.product_id.weight, 
-                        'total_net_weight': line.product_id.weight * line.package_quantity,
-                        'package_no': 1,
-                        'width': line.width,
-                        'length': line.length,
-                        'height': line.height,
-                        'stackable': line.stackable,
-                    }
+                            'name': line.product_id.name,
+                            'batch_id': batch.id,
+                            'customer_reference': line.customer_reference,
+                            'product_id': line.product_id.id,
+                            'package_quantity': line.product_uom_qty,
+                            'description': line.product_id.description_sale,
+                            'origin' : line.product_id.origin_country_id.name,
+                            'unit_of_measure': line.product_uom_id.id,
+                            'unit_net_weight': line.product_id.weight, 
+                            'total_net_weight': line.product_id.weight * line.product_uom_qty,
+                            'package_no': 1,
+                            'width': line.width,
+                            'length': line.length,
+                            'height': line.height,
+                            'stackable': line.stackable,
+                        }
                     PackagingPreparation.create(vals)
-    
+
+                else:
+                    # Tam paketler ve kalan miktar için kayıtlar oluştur
+                    full_packages = int(line.product_uom_qty / line.package_quantity)
+                    for _ in range(full_packages):
+                        vals = {
+                            'name': line.product_id.name,
+                            'batch_id': batch.id,
+                            'customer_reference': line.customer_reference,
+                            'product_id': line.product_id.id,
+                            'package_quantity': line.package_quantity,
+                            'description': line.product_id.description_sale,
+                            'origin' : line.product_id.origin_country_id.name,
+                            'unit_of_measure': line.product_uom_id.id,
+                            'unit_net_weight': line.product_id.weight, 
+                            'total_net_weight': line.product_id.weight * line.package_quantity,
+                            'package_no': 1,
+                            'width': line.width,
+                            'length': line.length,
+                            'height': line.height,
+                            'stackable': line.stackable,
+                        }
+                        PackagingPreparation.create(vals)
+
+                    remaining_qty = line.product_uom_qty % line.package_quantity
+                    if remaining_qty > 0:
+                        vals = {
+                            'name': line.product_id.name,
+                            'batch_id': batch.id,
+                            'customer_reference': line.customer_reference,
+                            'product_id': line.product_id.id,
+                            'package_quantity': remaining_qty,
+                            'description': line.product_id.description_sale,
+                            'origin' : line.product_id.origin_country_id.name,
+                            'unit_of_measure': line.product_uom_id.id,
+                            'unit_net_weight': line.product_id.weight, 
+                            'total_net_weight': line.product_id.weight * line.package_quantity,
+                            'package_no': 1,
+                            'width': line.width,
+                            'length': line.length,
+                            'height': line.height,
+                            'stackable': line.stackable,
+                        }
+                        PackagingPreparation.create(vals)
 
 class StockPickingBatch(models.Model):
     _inherit = 'stock.picking'
@@ -75,6 +119,12 @@ class StockPickingBatch(models.Model):
         ],
         store=True,
         readonly=False
+    )
+    driver_ids = fields.Many2many(
+        'res.partner',
+        'partner_id',  
+        string='Drivers',
+        store=True, 
     )
 
 class StockMoveLine(models.Model):

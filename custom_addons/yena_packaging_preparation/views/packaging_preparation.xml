@@ -9,7 +9,8 @@
                 <button string="Create Packaging Preparations" 
                         type="object" 
                         name="create_packaging_preparations"
-                        class="oe_highlight"/>
+                        class="oe_highlight"
+                        attrs="{'invisible': [('packaging_preparation_ids', '!=', [])]}"/>
             </header>
             <xpath expr="//notebook" position="inside">
                 <page string="Packaging Preparation">

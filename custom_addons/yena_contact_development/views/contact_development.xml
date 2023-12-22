@@ -201,7 +201,7 @@
                 <attribute name="required">1</attribute>
             </xpath>
 
-            <xpath expr="//field[@name='type']" position="replace"/>
+            <xpath expr="//field[@name='type']" position="invisible"/>
 
             <xpath expr="//field[@name='company_type']" position="after">
                 <br/>

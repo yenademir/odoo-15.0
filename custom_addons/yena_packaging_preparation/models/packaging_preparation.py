@@ -1,6 +1,7 @@
 from odoo import models, fields, api
 import base64
 from io import BytesIO
+from datetime import datetime
 
 class PackagingPreparation(models.Model):
     _name = 'packaging.preparation'
@@ -39,9 +40,16 @@ class StockPickingBatch(models.Model):
         string='Packaging Preparations'
     )
 
+    def delete_packaging_preparations(self):
+        for batch in self:
+            preparations_to_delete = batch.packaging_preparation_ids
+            preparations_to_delete.unlink()
+
     def create_packaging_preparations(self):
         PackagingPreparation = self.env['packaging.preparation']
         for batch in self:
+            pallet_no = 1
+
             for line in batch.move_line_ids:
                 # Eğer package_quantity tanımlı ve 0'dan büyükse
                 if line.package_quantity <= 0 or line.package_quantity is False:
@@ -62,8 +70,10 @@ class StockPickingBatch(models.Model):
                             'length': line.length,
                             'height': line.height,
                             'stackable': line.stackable,
+                            'pallet_no': pallet_no,
                         }
                     PackagingPreparation.create(vals)
+                    pallet_no += 1
 
                 else:
                     # Tam paketler ve kalan miktar için kayıtlar oluştur
@@ -85,8 +95,10 @@ class StockPickingBatch(models.Model):
                             'length': line.length,
                             'height': line.height,
                             'stackable': line.stackable,
+                            'pallet_no': pallet_no,
                         }
                         PackagingPreparation.create(vals)
+                        pallet_no += 1
 
                     remaining_qty = line.product_uom_qty % line.package_quantity
                     if remaining_qty > 0:
@@ -106,8 +118,10 @@ class StockPickingBatch(models.Model):
                             'length': line.length,
                             'height': line.height,
                             'stackable': line.stackable,
+                            'pallet_no': pallet_no,
                         }
                         PackagingPreparation.create(vals)
+                        pallet_no += 1
 
 class StockPickingBatch(models.Model):
     _inherit = 'stock.picking'
@@ -182,6 +196,13 @@ class PackagingPreparationReportXlsx(models.AbstractModel):
             'bold': True,
             'size': 18
         })
+        merge_format14left = workbook.add_format({
+            'text_wrap': True,
+            'align': 'left',
+            'valign': 'vcenter',
+            'bold': True,
+            'size': 14
+        })
         merge_format14 = workbook.add_format({
             'align': 'center',
             'valign': 'vbottom',
@@ -194,7 +215,24 @@ class PackagingPreparationReportXlsx(models.AbstractModel):
 
         for batch in batches:
             sheet = workbook.add_worksheet('Batch %s' % batch.name)
+
+            # PO(s) # için müşteri referanslarını topla
+            customer_references = set(line.customer_reference for line in batch.move_line_ids if line.customer_reference)
+            po_text = 'PO(s) # ' + ', '.join(customer_references)
+
+            # Project No(s) # için proje numaralarını topla
+            project_nos = set(project.name for project in batch.project_ids)
+            project_text = 'Project No(s) # ' + ', '.join(project_nos)
+
+            transportation_code = batch.transportation_code if batch.transportation_code else ''
+            despatch_date = batch.edespatch_date if batch.edespatch_date else ''
             
+            # Tarih formatını ayarla (eğer despatch_date varsa)
+            if despatch_date:
+                despatch_date = datetime.strftime(despatch_date, '%Y-%m-%d')
+
+            shipment_info_text = f'Shipment Number: {transportation_code} / Shipment Date: {despatch_date}'
+
             # Sütun genişliklerini ayarla
             column_widths = [6, 9, 14.5, 54, 15.5, 10, 6.50, 16, 23, 16.5, 17.5, 24, 12.5, 12.5, 12.5, 13.5, 12]
             for i, width in enumerate(column_widths):
@@ -207,6 +245,9 @@ class PackagingPreparationReportXlsx(models.AbstractModel):
             
             # İlk 9 satırı ve A - E hücrelerini birleştir
             sheet.merge_range('A1:C9', 'PACKING LIST', merge_format14)
+            sheet.merge_range('A10:C10', po_text, merge_format14left)
+            sheet.merge_range('A11:C11', project_text, merge_format14left)
+            sheet.merge_range('A12:C12', shipment_info_text, merge_format14left)
             sheet.merge_range('F1:K1', 'İRSALİYE NO / WAY BILL NO :', merge_format10)
             sheet.merge_range('F2:K2', 'İHRACATÇI /SHIPPER:', merge_format10)
             sheet.merge_range('F3:K9', 'YENA DEMİR ÇELİK SAN. TİC.LTD.ŞTİ.\nÖrnek Mahallesi, Ercüment Batanay Sokak.\nNo:14A, A2 Blok, Kat:32, D:270 34704\nAtaşehir/İstanbul', merge_format18)
@@ -228,14 +269,17 @@ class PackagingPreparationReportXlsx(models.AbstractModel):
                 if pallet_no not in pallet_data:
                     pallet_data[pallet_no] = {
                         'lines': [],
+                        'unit_net_weight': 0,
                         'total_net_weight': 0,
+                        'gross_weight': 0,
                         'total_gross_weight': 0,
-                        # Diğer toplam değerler
                     }
                 pallet_data[pallet_no]['lines'].append(line)
+                pallet_data[pallet_no]['unit_net_weight'] += line.unit_net_weight
                 pallet_data[pallet_no]['total_net_weight'] += line.total_net_weight
+                pallet_data[pallet_no]['gross_weight'] += line.gross_weight
                 pallet_data[pallet_no]['total_gross_weight'] += line.total_gross_weight
-            row = 9  # 10. satırdan başla (0-indexed)
+            row = 12  # 13. satırdan başla (0-indexed)
 
             # Başlık satırını yaz ve kalın biçimi uygula
             for col, header in enumerate(headers):
@@ -247,7 +291,7 @@ class PackagingPreparationReportXlsx(models.AbstractModel):
                     row += 1
 
                     # S.NO
-                    sheet.write(row, 0, row - 9, centered_format)
+                    sheet.write(row, 0, row - 12, centered_format)
                     # ORDER NO (Customer Reference)
                     sheet.write(row, 1, line.customer_reference or '', centered_format)
                     # Drawing Number (Product)
@@ -285,9 +329,10 @@ class PackagingPreparationReportXlsx(models.AbstractModel):
                 if len(data['lines']) > 1:
                     # İlk satırı al ve birleştir
                     first_line = data['lines'][0]
+                    sheet.merge_range(start_row, 7, end_row, 7, data['unit_net_weight'], centered_format)
                     sheet.merge_range(start_row, 8, end_row, 8, data['total_net_weight'], centered_format)
                     sheet.merge_range(start_row, 9, end_row, 9, '1', centered_format)
-                    sheet.merge_range(start_row, 10, end_row, 10, '', centered_format)
+                    sheet.merge_range(start_row, 10, end_row, 10, data['gross_weight'], centered_format)
                     sheet.merge_range(start_row, 11, end_row, 11, data['total_gross_weight'], centered_format)
                     sheet.merge_range(start_row, 12, end_row, 12, '', centered_format)
                     sheet.merge_range(start_row, 13, end_row, 13, '', centered_format)

@@ -11,6 +11,12 @@
                         name="create_packaging_preparations"
                         class="oe_highlight"
                         attrs="{'invisible': [('packaging_preparation_ids', '!=', [])]}"/>
+                <button string="Delete Packaging Preparations"
+                        class="oe_highlight"
+                        type="object"
+                        name="delete_packaging_preparations"
+                        attrs="{'invisible': [('packaging_preparation_ids', '=', [])]}"
+                        confirm="Paket Listesini silmek istediğine emin misin?"/>
             </header>
             <xpath expr="//notebook" position="inside">
                 <page string="Packaging Preparation">

@@ -31,3 +31,7 @@ class StockPicking(models.Model):
         string='Drivers',
         store=True, 
     )
+    edespatch_date = fields.Datetime(string="Real Departure Date")
+    receipt_document_number = fields.Char(string="Receipt Document Number")
+    import_decleration_number = fields.Char(string="Import Decleration Number")
+    edespatch_move_id  = fields.Many2one('stock.move', string="E-Despatch Move")

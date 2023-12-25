@@ -7,6 +7,9 @@
         <field name="arch" type="xml">
             <xpath expr="//field[@name='origin']" position="after">
                 <field name="edespatch_delivery_type" />
+                <field name="edespatch_date" />
+                <field name="edespatch_move_id" />
+                <field name="receipt_document_number" />
             </xpath>
         </field>
     </record>

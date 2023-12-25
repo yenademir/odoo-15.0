@@ -25,7 +25,7 @@
         </field>
     </record>
 <data>
-    <record id="view_transfer_form_inherit" model="ir.ui.view">
+     <record id="view_transfer_form_inherit" model="ir.ui.view">
         <field name="name">transfer.form.inherit.yena</field>
         <field name="model">stock.picking</field>
         <field name="inherit_id" ref="stock.view_picking_form" />
@@ -33,14 +33,36 @@
             <xpath expr="//field[@name='picking_type_id']" position="after">
                 <field name="origin"/>
             </xpath>
-            <xpath expr="//field[@name='origin']" position="after">
+             <xpath expr="//field[@name='origin']" position="after">
                 <field name="arrival_date" />
-                <field name="transportation_code" />
                 <field name="situation" />
-                <field name="project_transfer"  widget="many2many_tags"/>
+            </xpath>
+           <xpath expr="//field[@name='partner_id']" position="after">
+                <field name="transportation_code" attrs="{'required': True}" />
+                <field name="project_transfer" widget="many2many_tags" attrs="{'required': True}"/>
+            </xpath>
+            <xpath expr="//field[@name='edespatch_date']" position="attributes">
+                <attribute name="string">Actual Departure Date</attribute>
+            </xpath>
+            <xpath expr="//field[@name='edespatch_move_id']" position="attributes">
+                <attribute name="string">Vendor E-Despatch Number</attribute>
+                <attribute name="readonly">1</attribute>
+            </xpath>           
+            <xpath expr="//field[@name='receipt_document_number']" position="attributes">
+                <attribute name="string">Receipt Doc. No (Accept or Reject)</attribute>
             </xpath>
         </field>
     </record>
+    <!--<record id="view_transfer_form_inherit_foreign_trade" model="ir.ui.view">
+        <field name="name">transfer.form.inherit.yena.foreign.trade</field>
+        <field name="model">stock.picking</field>
+        <field name="inherit_id" ref="stock_foreign_trade_info.view_picking_form_foreign_trade" />
+        <field name="arch" type="xml">
+            <xpath expr="//field[@name='import_decleration_number']" position="attributes">
+                <attribute name="string">Custom Decleration</attribute>
+            </xpath>
+        </field> 
+    </record>-->
     <record id="product_template_main_form_inherit_yena" model="ir.ui.view">
         <field name="name">product.template.form.inherit.yena</field>
         <field name="model">product.template</field>
@@ -185,6 +207,9 @@
            
             <xpath expr="//field[@name='date_done']"  position="after">
                 <field name="arrival_date" attrs="{'invisible': [('sequence_code', '!=', 'OUT')]}"/>
+            </xpath>
+            <xpath expr="//field[@name='edespatch_date']"  position="before">
+                <field name="purchase_required_delivery_date" readonly="1"/>
             </xpath>
         </field>
     </record>

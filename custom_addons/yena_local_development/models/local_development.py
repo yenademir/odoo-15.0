@@ -18,3 +18,16 @@ class StockPicking(models.Model):
     arrival_date = fields.Date(
         string='Arrival Date',
     )
+    edespatch_delivery_type = fields.Selection([
+        ('printed', 'Printed'),
+        ('edespatch', 'E-Despatch')
+    ], string='E-Despatch Delivery Type')
+
+    driver_ids = fields.Many2many(
+        'res.partner',
+        'stock_picking_driver_rel',
+        'batch_id',
+        'partner_id',  
+        string='Drivers',
+        store=True, 
+    )

@@ -15,9 +15,9 @@
         'stock',
         'account',
     ],
-    # 'data': [
-    #     'views/local_view.xml',
-    # ],
+     'data': [
+         'views/local_view.xml',
+     ],
     'installable': True,
     'auto_install': False,
 }

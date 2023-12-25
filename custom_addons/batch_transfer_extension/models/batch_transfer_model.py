@@ -5,33 +5,33 @@ class StockPickingBatch(models.Model):
     _inherit = 'stock.picking.batch'
     _description = "Batch Transfer"
     _order = "name desc"
-
     edespatch_date = fields.Date(string="Real Departure Date")
     situation = fields.Selection(
         [("to_be_planned", "To Be Planned"),
          ("on_the_way", "On The Way"),
          ("arrived", "Arrived")], string="Situation")
+
     customer_ids = fields.Many2many(
         'res.partner',
-        'batch_customer_rel', 
-        'batch_id', 
+        'batch_customer_rel'
+        'batch_id',
         'partner_id',
         string='Customers'
     )
     vendor_ids = fields.Many2many(
         'res.partner',
         'batch_vendor_rel',
-        'batch_id', 
+        'batch_id',
         'partner_id',
         string='Vendors'
     )
     project_ids = fields.Many2many('project.project', string='Projects', compute='_compute_projects', store=True)
-    transportation_code = fields.Char(string='Transportation Code')
     purchase_count = fields.Integer(string='Purchases', compute='_compute_purchase_count')
     scheduled_date = fields.Date(string='Scheduled Date')
     arrival_date = fields.Date(string='Arrival Date')
     vehicle_type_id = fields.Many2one('vehicle.type', string='Araç Türü')
-    airtag_url = fields.Char(string='Airtag URL', compute='_compute_airtag_url', store=True)  
+    airtag_url = fields.Char(string='Airtag URL', compute='_compute_airtag_url', store=True)
+    transportation_code = fields.Char(string='Transportation Code')
     edespatch_delivery_type = fields.Selection(
         [
             ("edespatch", "E-Despatch"),
@@ -62,7 +62,6 @@ class StockPickingBatch(models.Model):
         self.ensure_one()
         purchase_ids = []
 
-        # Batch transferin adı ile eşleşen purchase'ları bul
         purchases = self.env['purchase.order'].search([('project_purchase', '=', self.name)])
 
         for purchase in purchases:
@@ -80,7 +79,7 @@ class StockPickingBatch(models.Model):
     def _compute_purchase_count(self):
         for batch in self:
             purchases = self.env['purchase.order'].search([
-                ('project_purchase', '=', batch.name)
+                ('project_purchase', '=', batch.project_ids.ids)
             ])
             batch.purchase_count = len(purchases)
 
@@ -120,14 +119,23 @@ class StockPickingBatch(models.Model):
         for batch in self:
             driver_ids = batch.driver_ids.ids
             batch.picking_ids.write({'driver_ids': [(6, 0, driver_ids)]})
+
+
+class StockMoveLine(models.Model):
+    _inherit = 'stock.move.line'
+
+    project_ids = fields.Many2many('project.project', string='Projects', compute='_compute_project_transfer', store=True)
+
+    @api.depends('picking_id.project_transfer')
+    def _compute_project_transfer(self):
+        for record in self:
+            record.project_ids = record.picking_id.project_transfer
             
 class Picking(models.Model):
     _inherit = 'stock.picking'
-    
     edespatch_date = fields.Date(related='batch_id.edespatch_date', store=True, readonly=False)
     arrival_date = fields.Date(related="batch_id.arrival_date", string='Arrival Date')
     project_transfer = fields.Many2many("project.project", string="Project Number")
-    transportation_code = fields.Char(related="batch_id.transportation_code", string="Transportation Code")
     situation = fields.Selection(
         [("to_be_planned", "To Be Planned"),
          ("on_the_way", "On The Way"),

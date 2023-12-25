@@ -17,7 +17,6 @@ class ResPartner(models.Model):
             ('4', '4'),
             ('5', '5'),
             ]
-    # Ortak Alanlar
     creating_changing_design = fields.Selection(SELECTION_OPTIONS, string='Creating/Changing Design')
     creating_changing_design_note = fields.Char(string='Creating/Changing Design Note')
     shipment_between_countries = fields.Selection(SELECTION_OPTIONS, string='Shipment (between countries)')

@@ -7,7 +7,6 @@ class Picking(models.Model):
     _inherit = 'stock.picking'
 
     arrive_date = fields.Date(string="Arrive Date")
-    project_transfer = fields.Many2many("project.project", string="Project Number")
     situation = fields.Selection([
         ("to_be_planned", "To be planned"),
         ("on_the_way", "On the way"),
@@ -17,20 +16,48 @@ class Picking(models.Model):
     sale_id=fields.Many2one("sale.order",string="Sale Order")
     purchase_id=fields.Many2one("purchase.order",string="Purchase Order")
     sequence_code = fields.Char(string='Sequence Code', related='picking_type_id.sequence_code', store=True)
-    purchase_required_delivery_date = fields.Date(
-        string='Required Delivery Date',
-        related='purchase_id.delivery_date',
-        store=True,
-        readonly=True
-    )
+    logistic_company = fields.Char (string="Logistic Company")
+
+
+    @api.model
+    def create(self, vals):
+        self._update_scheduled_date(vals)
+        return super(Picking, self).create(vals)
+
+    def write(self, vals):
+        self._update_scheduled_date(vals)
+        return super(Picking, self).write(vals)
+
+    def _update_scheduled_date(self, vals):
+        for record in self:
+            picking_type = record.env['stock.picking.type'].browse(vals.get('picking_type_id', record.picking_type_id.id))
+
+            if picking_type.sequence_code == 'IN':  # Receipts
+                purchase_order = record.env['purchase.order'].search([('name', '=', record.origin)], limit=1)
+                if purchase_order:
+                    vals['scheduled_date'] = purchase_order.delivery_date
+            elif picking_type.sequence_code == 'OUT':  # Delivery Orders
+                sale_order = record.env['sale.order'].search([('name', '=', record.origin)], limit=1)
+                if sale_order:
+                    vals['scheduled_date'] = sale_order.commitment_date
+
+
 class StockMove(models.Model):
     _inherit = "stock.move"
 
     arrive_date = fields.Date(related="picking_id.arrive_date", string="Arrive Date")
-    project_transfer = fields.Many2many('project.project', related="picking_id.project_transfer", string="Project Number")
+    project_transfer = fields.Many2one('project.project', related="picking_id.project_transfer", string="Project Number")
     situation = fields.Selection(related="picking_id.situation", string="Situation")
     transportation_code = fields.Char(related="picking_id.transportation_code", string="Transportation Code")
-    
+    batch_id = fields.Many2one('stock.picking.batch', string='Batch', related='picking_id.batch_id', store=True, readonly=True)
+    edespatch_delivery_type = fields.Selection(related="picking_id.edespatch_delivery_type", string="Delivery Type")
+    scheduled_date = fields.Datetime(related='picking_id.scheduled_date', store=True, readonly=True)
+    arrival_date = fields.Date(related='picking_id.arrival_date', store=True, readonly=True)
+    purchase_id=fields.Many2one(related='picking_id.purchase_id',string="Purchase Order")
+    edespatch_date=fields.Datetime(related='picking_id.edespatch_date',string="Purchase Order")
+    airtag_url = fields.Char(string='Airtag Link', related='picking_id.batch_id.airtag_url', store=True, readonly=True)
+    vehicle_type_id = fields.Many2one(string='Vehicle Type', related='picking_id.batch_id.vehicle_type_id', store=True, readonly=True)
+
 class ProductTemplate(models.Model):
     _inherit = 'product.template'
 

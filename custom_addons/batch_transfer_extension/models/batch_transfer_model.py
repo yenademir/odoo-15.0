@@ -32,6 +32,7 @@ class StockPickingBatch(models.Model):
     vehicle_type_id = fields.Many2one('vehicle.type', string='Araç Türü')
     airtag_url = fields.Char(string='Airtag URL', compute='_compute_airtag_url', store=True)
     transportation_code = fields.Char(string='Transportation Code')
+    import_decleration_number = fields.Char(string='Custom Decleration No', inverse='_inverse_import_decleration_number', store=True)
     edespatch_delivery_type = fields.Selection(
         [
             ("edespatch", "E-Despatch"),
@@ -55,8 +56,13 @@ class StockPickingBatch(models.Model):
     @api.depends('picking_ids.project_transfer')
     def _compute_projects(self):
         for record in self:
+            # Her bir picking kaydındaki project_transfer alanını topla
             projects = record.picking_ids.mapped('project_transfer')
-            record.project_ids = projects
+            # Many2many alanına bu projelerin ID'lerini ata
+            project_ids = projects.ids if projects else []
+            record.project_ids = [(6, 0, project_ids)]
+
+
 
     def action_show_purchases(self):
         self.ensure_one()
@@ -92,16 +98,18 @@ class StockPickingBatch(models.Model):
             else:
                 record.airtag_url = False
 
-    @api.onchange('edespatch_date', 'situation', 'arrival_date')
+    @api.onchange('edespatch_date', 'situation', 'arrival_date', 'import_decleration_number')
     def _onchange_transfer_related_fields(self):
         for batch in self:
             edespatch_dates = {'edespatch_date': batch.edespatch_date}
             arrival_dates = {'arrival_date': batch.arrival_date}
             situation = {'situation': batch.situation}
+            import_decleration_number = {'import_decleration_number': batch.import_decleration_number}
             for transfer in batch.picking_ids:
                 transfer.write(edespatch_dates)
                 transfer.write(situation)
                 transfer.write(arrival_dates)
+                transfer.write(import_decleration_number)
 
     @api.depends('picking_ids')
     def _compute_edespatch_delivery_type(self):
@@ -114,6 +122,12 @@ class StockPickingBatch(models.Model):
             edespatch_delivery_type = batch.edespatch_delivery_type
             batch.picking_ids.write({'edespatch_delivery_type': edespatch_delivery_type})
 
+    def _inverse_import_decleration_number(self):
+        for batch in self:
+            # Batch modelindeki import_decleration_number değeri değiştiğinde, bu değeri tüm ilişkili picking kayıtlarına yaz.
+            if batch.import_decleration_number:
+                batch.picking_ids.write({'import_decleration_number': batch.import_decleration_number})
+
     @api.depends('picking_ids.driver_ids')
     def _inverse_driver_ids(self):
         for batch in self:
@@ -124,7 +138,7 @@ class StockPickingBatch(models.Model):
 class StockMoveLine(models.Model):
     _inherit = 'stock.move.line'
 
-    project_ids = fields.Many2many('project.project', string='Projects', compute='_compute_project_transfer', store=True)
+    project_ids = fields.Many2one('project.project', string='Projects', compute='_compute_project_transfer', store=True)
 
     @api.depends('picking_id.project_transfer')
     def _compute_project_transfer(self):
@@ -135,7 +149,7 @@ class Picking(models.Model):
     _inherit = 'stock.picking'
     edespatch_date = fields.Date(related='batch_id.edespatch_date', store=True, readonly=False)
     arrival_date = fields.Date(related="batch_id.arrival_date", string='Arrival Date')
-    project_transfer = fields.Many2many("project.project", string="Project Number")
+    project_transfer = fields.Many2one("project.project", string="Project Number")
     situation = fields.Selection(
         [("to_be_planned", "To Be Planned"),
          ("on_the_way", "On The Way"),

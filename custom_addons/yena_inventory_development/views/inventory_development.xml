@@ -39,7 +39,7 @@
             </xpath>
            <xpath expr="//field[@name='partner_id']" position="after">
                 <field name="transportation_code" attrs="{'required': True}" />
-                <field name="project_transfer" widget="many2many_tags" attrs="{'required': True}"/>
+                <field name="project_transfer" attrs="{'required': True}"/>
             </xpath>
             <xpath expr="//field[@name='edespatch_date']" position="attributes">
                 <attribute name="string">Actual Departure Date</attribute>
@@ -50,6 +50,9 @@
             </xpath>           
             <xpath expr="//field[@name='receipt_document_number']" position="attributes">
                 <attribute name="string">Receipt Doc. No (Accept or Reject)</attribute>
+            </xpath>
+            <xpath expr="//label[@for='scheduled_date']" position="attributes">
+                <attribute name="string">Scheduled Departure/Delivery Date</attribute>
             </xpath>
         </field>
     </record>
@@ -177,15 +180,26 @@
         <field name="model">stock.move</field>
         <field name="arch" type="xml">
             <tree string="Operations" delete="0" multi_edit="1" sample="1" default_order="transportation_code" decoration-info="situation=='to_be_planned'" decoration-danger="situation=='on_the_way'" decoration-success="situation=='arrived'">
-                <field name="product_id"/>
-                <field name="is_locked" invisible="1"/>
-                <field name="state" widget="statusbar" statusbar_visible="draft,confirmed,assigned,done" invisible="1"/>
-                <field name="partner_id" attrs="{'readonly': ['&amp;', ('state', '=', 'done'), ('is_locked', '=', True)]}"/>
-                <field name="product_uom_qty"/>
-                <field name="project_transfer" widget="many2many_tags"/>
-                <field name="arrive_date"/>
                 <field name="transportation_code" groupby="transportation_code"/>
+                <field name="batch_id" optional="show"/>
+                <field name="edespatch_delivery_type" optional="hide"/>
+                <field name="picking_id"/>
+                <field name="project_transfer" optional="hide"/>
+                <field name="product_id" optional="hide"/>
+                <field name="partner_id" string="Receive From / Delivery Adress"/>
+                <field name="product_uom_qty"/>
+                <field name="quantity_done"/>
+                <!-- <field name="package_types" Alperenin geliştirdiği packaging ile alakalı/>-->
+                <!-- <field name="net_weight" Alperenin geliştirdiği packaging ile alakalı/>-->
+                <field name="weight"/>
+                <field name="scheduled_date" optional="hide"/>
+                <field name="arrival_date" optional="hide"/>
+                <field name="purchase_id" optional="show"/>
+                <field name="edespatch_date" optional="hide"/>
                 <field name="situation" />
+                <field name="vehicle_type_id" optional="hide"/>
+                <field name="state" />
+                <field name="airtag_url" optional="hide"/>
             </tree>
         </field>
     </record>
@@ -194,9 +208,10 @@
         <field name="model">stock.picking</field>
         <field name="inherit_id" ref="stock.view_picking_form"/>
         <field name="arch" type="xml">
-            <!-- <xpath expr="//field[@name='document_number']" position="replace"/>          -->
             <xpath expr="//page[@name='extra']//field[@name='company_id']" position="after">
                 <field name="document_number"/>
+                <field name="sale_id" attrs="{'invisible': [('sequence_code', '!=', 'OUT')]}"/>
+                <field name="purchase_id" attrs="{'invisible': [('sequence_code', '!=', 'IN')]}"/>
             </xpath>
             <xpath expr="//field[@name='picking_type_id']"  position="after">
                 <field name="sequence_code"  attrs="{'invisible': 1}"/>
@@ -205,12 +220,12 @@
             </xpath>
             <xpath expr="//field[@name='origin']" position="replace"/>
            
-            <xpath expr="//field[@name='date_done']"  position="after">
+        <!--<xpath expr="//field[@name='date_done']"  position="after">
                 <field name="arrival_date" attrs="{'invisible': [('sequence_code', '!=', 'OUT')]}"/>
             </xpath>
-            <xpath expr="//field[@name='edespatch_date']"  position="before">
+            <xpath expr="//field[@name='arrival_date']"  position="before">
                 <field name="purchase_required_delivery_date" readonly="1"/>
-            </xpath>
+            </xpath>-->
         </field>
     </record>
  
@@ -220,7 +235,7 @@
         <field name="inherit_id" ref="delivery.vpicktree_view_tree"/>
         <field name="arch" type="xml">
             <xpath expr="//field[@name='name']" position="after"> <!-- kontrol burası da gerçekten geliyor mu bi bak -->
-                <field name="project_transfer" widget="many2many_tags"/>
+                <field name="project_transfer" />
                 <field name="transportation_code"/>
             </xpath>
         </field>

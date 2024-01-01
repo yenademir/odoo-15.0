@@ -7,6 +7,7 @@ class Picking(models.Model):
     _inherit = 'stock.picking'
 
     arrive_date = fields.Date(string="Arrive Date")
+    project_transfer = fields.Many2one("project.project", string="Project Number")
     situation = fields.Selection([
         ("to_be_planned", "To be planned"),
         ("on_the_way", "On the way"),
@@ -43,7 +44,7 @@ class Picking(models.Model):
             arrival_date = fields.Datetime.from_string(record.arrival_date) if record.arrival_date else None
             scheduled_date_diff = fields.Datetime.from_string(record.scheduled_date) if record.scheduled_date else None
             record.delivery_performance_customer = self.compute_days_difference(scheduled_date_diff, arrival_date)
-
+            
     @api.model
     def create(self, vals):
         self._update_scheduled_date(vals)
@@ -66,12 +67,22 @@ class Picking(models.Model):
                 if sale_order:
                     vals['scheduled_date'] = sale_order.commitment_date
 
+    def default_get(self, fields_list):
+        defaults = super(Picking, self).default_get(fields_list)
 
+        if self.env.user.company_id.id == 1 and self.env.context.get('default_picking_type_id'):
+            picking_type = self.env['stock.picking.type'].browse(self.env.context['default_picking_type_id'])
+            if picking_type.sequence_code == 'OUT':
+                defaults['edespatch_delivery_type'] = 'edespatch'
+
+        return defaults
+
+    
 class StockMove(models.Model):
     _inherit = "stock.move"
 
     arrive_date = fields.Date(related="picking_id.arrive_date", string="Arrive Date")
-    project_transfer = fields.Many2one('project.project', related="picking_id.project_transfer", string="Project Number")
+    project_transfer = fields.Many2one(related="picking_id.project_transfer", string="Project Number")
     situation = fields.Selection(related="picking_id.situation", string="Situation")
     transportation_code = fields.Char(related="picking_id.transportation_code", string="Transportation Code")
     batch_id = fields.Many2one('stock.picking.batch', string='Batch', related='picking_id.batch_id', store=True, readonly=True)
@@ -82,7 +93,7 @@ class StockMove(models.Model):
     edespatch_date=fields.Datetime(related='picking_id.edespatch_date',string="Purchase Order")
     airtag_url = fields.Char(string='Airtag Link', related='picking_id.batch_id.airtag_url', store=True, readonly=True)
     vehicle_type_id = fields.Many2one(string='Vehicle Type', related='picking_id.batch_id.vehicle_type_id', store=True, readonly=True)
-
+    
 class ProductTemplate(models.Model):
     _inherit = 'product.template'
 

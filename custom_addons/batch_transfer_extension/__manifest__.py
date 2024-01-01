@@ -4,7 +4,7 @@
     'category': 'Inventory',
     'summary': 'Extends Batch Transfer with additional fields',
     'author': 'Emre Mataracı',
-    'website': 'http://yourwebsite.com',
+    'website': 'www.yenaengineering.nl',
     'depends': ['stock', 'project', 'purchase', 'contacts'],
     'data': [
         'views/batch_transfer_view.xml',

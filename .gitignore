@@ -1,3 +1,2 @@
-*
-!custom_addons/
-odoo.conf
+/*
+!/custom_addons/

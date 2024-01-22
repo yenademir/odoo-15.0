@@ -13,6 +13,13 @@ class PurchaseOrder(models.Model):
     project_purchase = fields.Many2one('project.project', string="Project Number", required=True, store=True)
     contact_id = fields.Many2one('res.partner', string='Contact Person', store=True)
 
+    @api.onchange('company_id')
+    def _onchange_company_id(self):
+        if self.company_id.id == 1:
+            self.incoterm_id = 13  # company_id 1 olduğunda incoterm_id'yi 13 yap
+        elif self.company_id.id == 2:
+            self.incoterm_id = 1   # company_id 2 olduğunda incoterm_id'yi 1 yap
+
     @api.onchange('project_purchase')
     def _onchange_project_purchase(self):
         if self.project_purchase and hasattr(self.project_purchase, 'analytic_account_id'):

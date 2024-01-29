@@ -14,6 +14,7 @@
         'contacts',
         'stock',
         'account',
+        'delivery',
     ],
      'data': [
          'views/local_view.xml',

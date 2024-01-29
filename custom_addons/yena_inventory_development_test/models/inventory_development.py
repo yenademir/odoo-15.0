@@ -2,48 +2,30 @@ from odoo import api, fields, models
 import requests
 import base64
 from io import BytesIO
+from datetime import datetime, timedelta
 
 class Picking(models.Model):
     _inherit = 'stock.picking'
 
     arrive_date = fields.Date(string="Arrive Date")
-    situation = fields.Selection([
-        ("to_be_planned", "To be planned"),
-        ("on_the_way", "On the way"),
-        ("arrived", "Arrived")
-    ], string="Situation")
-    transportation_code = fields.Char(string="Transportation Code")
+    situation = fields.Selection(
+        [("to_be_planned", "To Be Planned"),
+         ("on_the_way", "On The Way"),
+         ("arrived", "Arrived")],
+        string="Situation",
+        store=True,
+        readonly=False
+    )
+    transportation_code = fields.Char(
+        string="Transportation Code",
+        store=True,
+        readonly=False
+    )
     sale_id=fields.Many2one("sale.order",string="Sale Order")
     purchase_id=fields.Many2one("purchase.order",string="Purchase Order")
     sequence_code = fields.Char(string='Sequence Code', related='picking_type_id.sequence_code', store=True)
-    logistic_company = fields.Char (string="Logistic Company")
-    delivery_performance_supplier = fields.Integer(compute='_compute_despatch_date_difference', string='S-Delivery Performance', store=True, readonly=True)
-    delivery_performance_customer = fields.Integer(compute='_compute_arrival_date_difference', string='C-Delivery Performance', store=True, readonly=True)
-    
-    @api.model
-    def compute_days_difference(self, scheduled_date, comparison_date):
-        if not scheduled_date or not comparison_date:
-            return 0
- 
-        diff = scheduled_date - comparison_date
-        days = diff.days
- 
-        return days
- 
-    @api.depends('scheduled_date', 'edespatch_date')
-    def _compute_despatch_date_difference(self):
-        for record in self:
-            despatch_date = fields.Datetime.from_string(record.edespatch_date) if record.edespatch_date else None
-            scheduled_date_diff = fields.Datetime.from_string(record.scheduled_date) if record.scheduled_date else None
-            record.delivery_performance_supplier = self.compute_days_difference(scheduled_date_diff, despatch_date)
- 
-    @api.depends('scheduled_date', 'arrival_date')
-    def _compute_arrival_date_difference(self):
-        for record in self:
-            arrival_date = fields.Datetime.from_string(record.arrival_date) if record.arrival_date else None
-            scheduled_date_diff = fields.Datetime.from_string(record.scheduled_date) if record.scheduled_date else None
-            record.delivery_performance_customer = self.compute_days_difference(scheduled_date_diff, arrival_date)
-            
+    logistic_company = fields.Char (string="Logistic Company", store=True)
+
     @api.model
     def create(self, vals):
         self._update_scheduled_date(vals)
@@ -53,7 +35,39 @@ class Picking(models.Model):
         self._update_scheduled_date(vals)
         return super(Picking, self).write(vals)
 
+    @api.model
+    def _create_scheduled_activity(self):
+        model_id = self.env['ir.model'].search([('model', '=', 'stock.picking')], limit=1)
+        activity_type_id = self.env.ref('yena_inventory_development_test.activity_type_custom').id
+        date_deadline = fields.Date.today() + timedelta(days=3)
+
+        return {
+            'res_model_id': model_id.id,
+            'res_id': self.id,
+            'activity_type_id': activity_type_id,
+            'summary': 'Check Documents',
+            'note': 'Lütfen TR/OUT transferi için gerekli lojistik dökümanlarının tamamlandığından emin olun.',
+            'date_deadline': date_deadline,
+            'user_id': self.env.user.id,
+        }
+
+    def button_validate(self):
+        res = super(Picking, self).button_validate()
+        if self.state == 'done' and self.picking_type_id.id == 2:
+            existing_activities = self.env['mail.activity'].search([
+                ('res_model_id.model', '=', 'stock.picking'),
+                ('res_id', '=', self.id),
+                ('activity_type_id', '=', self.env.ref('yena_inventory_development_test.activity_type_custom').id)
+            ])
+            if not existing_activities:
+                activity_vals = self._create_scheduled_activity()
+                self.env['mail.activity'].create(activity_vals)
+        return res
+    
     def _update_scheduled_date(self, vals):
+        if 'scheduled_date' not in vals:
+            return
+
         for record in self:
             picking_type = record.env['stock.picking.type'].browse(vals.get('picking_type_id', record.picking_type_id.id))
 
@@ -81,15 +95,17 @@ class StockMove(models.Model):
     _inherit = "stock.move"
 
     arrive_date = fields.Date(related="picking_id.arrive_date", string="Arrive Date")
-    project_transfer = fields.Many2one(related="picking_id.project_transfer", string="Project Number")
-    situation = fields.Selection(related="picking_id.situation", string="Situation")
-    transportation_code = fields.Char(related="picking_id.transportation_code", string="Transportation Code")
+    project_transfer = fields.Many2many(related="picking_id.project_transfer", string="Project Number")
+    picking_type_id = fields.Many2one(related="picking_id.picking_type_id", string="Operation Type", store=True)
+    related_partner = fields.Many2one(related="picking_id.partner_id", string="Receive From / Delivery Adress", store=True)
+    situation = fields.Selection(related="picking_id.situation", string="Situation", store=True)
+    transportation_code = fields.Char(related="picking_id.transportation_code", string="Transportation Code", store=True)
     batch_id = fields.Many2one('stock.picking.batch', string='Batch', related='picking_id.batch_id', store=True, readonly=True)
     edespatch_delivery_type = fields.Selection(related="picking_id.edespatch_delivery_type", string="Delivery Type")
     scheduled_date = fields.Datetime(related='picking_id.scheduled_date', store=True, readonly=True)
     arrival_date = fields.Date(related='picking_id.arrival_date', store=True, readonly=True)
     purchase_id=fields.Many2one(related='picking_id.purchase_id',string="Purchase Order")
-    edespatch_date=fields.Datetime(related='picking_id.edespatch_date',string="Purchase Order")
+    edespatch_date=fields.Datetime(related='picking_id.edespatch_date',string="Actual Departure Date")
     airtag_url = fields.Char(string='Airtag Link', related='picking_id.batch_id.airtag_url', store=True, readonly=True)
     vehicle_type_id = fields.Many2one(string='Vehicle Type', related='picking_id.batch_id.vehicle_type_id', store=True, readonly=True)
     
@@ -250,55 +266,55 @@ class ProductTemplate(models.Model):
             #
             # self.message_post(body=body)
 
-    class PackageTypes(models.Model):
-        _inherit = "stock.package.type"
+class PackageTypes(models.Model):
+    _inherit = "stock.package.type"
 
-        gross_weight = fields.Float(string="Gross Weight")
-        net_weight = fields.Float(string="Net Weight")
-        stackable = fields.Boolean(string="Stackable")
+    gross_weight = fields.Float(string="Gross Weight")
+    net_weight = fields.Float(string="Net Weight")
+    stackable = fields.Boolean(string="Stackable")
 
-    class PurchaseOrderLine(models.Model):
-        _inherit = 'purchase.order.line'
+class PurchaseOrderLine(models.Model):
+    _inherit = 'purchase.order.line'
 
-        coating = fields.Selection(related="product_id.coating", string="Coating", readonly=True)
-        unit_weight = fields.Float(related="product_id.weight", string="Unit Weight", readonly=True)
-        product_category = fields.Many2one('product.category', related="product_id.categ_id", string="Product Category")
-        product_type = fields.Selection(related='product_id.detailed_type', string='Product Type', store=True)
-        totalweight = fields.Float(string="Total Weight", readonly=True, compute="_compute_total_weight")
-        pricekg = fields.Float(string="KG Price", readonly=True, compute="_compute_pricekg")
+    coating = fields.Selection(related="product_id.coating", string="Coating", readonly=True)
+    unit_weight = fields.Float(related="product_id.weight", string="Unit Weight", readonly=True)
+    product_category = fields.Many2one('product.category', related="product_id.categ_id", string="Product Category")
+    product_type = fields.Selection(related='product_id.detailed_type', string='Product Type', store=True)
+    totalweight = fields.Float(string="Total Weight", readonly=True, compute="_compute_total_weight")
+    pricekg = fields.Float(string="KG Price", readonly=True, compute="_compute_pricekg")
 
-        @api.depends('unit_weight', 'product_qty')
-        def _compute_total_weight(self):
-            for record in self:
-                record.totalweight = record.unit_weight * record.product_qty
+    @api.depends('unit_weight', 'product_qty')
+    def _compute_total_weight(self):
+        for record in self:
+            record.totalweight = record.unit_weight * record.product_qty
 
-        @api.depends('price_subtotal', 'totalweight')
-        def _compute_pricekg(self):
-            for record in self:
-                if record.totalweight != 0:
-                    record.pricekg = record.price_subtotal / record.totalweight
-                else:
-                    record.pricekg = 0
+    @api.depends('price_subtotal', 'totalweight')
+    def _compute_pricekg(self):
+        for record in self:
+            if record.totalweight != 0:
+                record.pricekg = record.price_subtotal / record.totalweight
+            else:
+                record.pricekg = 0
 
-    class SaleOrderLine(models.Model):
-        _inherit = 'sale.order.line'
+class SaleOrderLine(models.Model):
+    _inherit = 'sale.order.line'
 
-        product_type = fields.Selection(related='product_id.detailed_type', string='Product Type', store=True)
-        product_category = fields.Many2one('product.category', related="product_id.categ_id", string="Product Category")
-        totalweight = fields.Float(string='Total Weight', compute='_compute_total_weight', store=True, readonly=True)
-        coating = fields.Selection(related="product_id.coating", string="Coating", readonly=True)
-        pricekg = fields.Float(compute='_compute_pricekg', string='KG Price', readonly=True, store=True)
-        unit_weight = fields.Float(related="product_id.weight", string="Unit Weight", readonly=True)
+    product_type = fields.Selection(related='product_id.detailed_type', string='Product Type', store=True)
+    product_category = fields.Many2one('product.category', related="product_id.categ_id", string="Product Category")
+    totalweight = fields.Float(string='Total Weight', compute='_compute_total_weight', store=True, readonly=True)
+    coating = fields.Selection(related="product_id.coating", string="Coating", readonly=True)
+    pricekg = fields.Float(compute='_compute_pricekg', string='KG Price', readonly=True, store=True)
+    unit_weight = fields.Float(related="product_id.weight", string="Unit Weight", readonly=True)
 
-        @api.depends('unit_weight', 'product_uom_qty')
-        def _compute_total_weight(self):
-            for record in self:
-                record.totalweight = record.unit_weight * record.product_uom_qty
+    @api.depends('unit_weight', 'product_uom_qty')
+    def _compute_total_weight(self):
+        for record in self:
+            record.totalweight = record.unit_weight * record.product_uom_qty
 
-        @api.depends('price_subtotal', 'totalweight')
-        def _compute_pricekg(self):
-            for record in self:
-                if record.totalweight != 0:
-                    record.pricekg = record.price_subtotal / record.totalweight
-                else:
-                    record.pricekg = 0
+    @api.depends('price_subtotal', 'totalweight')
+    def _compute_pricekg(self):
+        for record in self:
+            if record.totalweight != 0:
+                record.pricekg = record.price_subtotal / record.totalweight
+            else:
+                record.pricekg = 0

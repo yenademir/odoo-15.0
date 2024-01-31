@@ -508,22 +508,22 @@ class BlanketOrderLine(models.Model):
         help="Technical field for UX purpose.",
     )
 
-    def name_get(self):
-        result = []
-        if self.env.context.get("from_sale_order"):
-            for record in self:
-                res = "[%s]" % record.order_id.x_sourcedocument  # Change is here
-                if record.date_schedule:
-                    formatted_date = format_date(record.env, record.date_schedule)
-                    res += " - {}: {}".format(_("Date Scheduled"), formatted_date)
-                res += " ({}: {} {})".format(
-                    _("remaining"),
-                    record.remaining_uom_qty,
-                    record.product_uom.name,
-                )
-                result.append((record.id, res))
-            return result
-        return super().name_get()
+    # def name_get(self):
+    #     result = []
+    #     if self.env.context.get("from_sale_order"):
+    #         for record in self:
+    #             res = "[%s]" % record.order_id.x_sourcedocument  # Change is here
+    #             if record.date_schedule:
+    #                 formatted_date = format_date(record.env, record.date_schedule)
+    #                 res += " - {}: {}".format(_("Date Scheduled"), formatted_date)
+    #             res += " ({}: {} {})".format(
+    #                 _("remaining"),
+    #                 record.remaining_uom_qty,
+    #                 record.product_uom.name,
+    #             )
+    #             result.append((record.id, res))
+    #         return result
+    #     return super().name_get()
 
     def _get_real_price_currency(self, product, rule_id, qty, uom, pricelist_id):
         """Retrieve the price before applying the pricelist

@@ -14,11 +14,14 @@
                     <attribute name="invisible">1</attribute>
                 </xpath>-->
                 <xpath expr="//field[@name='taxes_id']" position="after">
-                    <field name="ordered_subtotal"/>
-                    <field name="remaining_subtotal"/>
-                    <field name="invoiced_subtotal"/>
-                    <field name="remaining_invoice_subtotal"/>
+                    <field name="ordered_subtotal" optional="hide"/>
+                    <field name="remaining_subtotal" optional="hide"/>
+                    <field name="invoiced_subtotal" optional="hide"/>
+                    <field name="remaining_invoice_subtotal" optional="hide"/>
                 </xpath>
+                <field name="sequence" position="attributes">
+                    <attribute name="invisible">1</attribute>
+                </field>
                 <xpath expr="//field[@name='amount_tax']" position="after">
                     <field name="ordered_total"/>
                     <field name="remaining_total"/>

@@ -107,7 +107,11 @@ class SaleOrder(models.Model):
         ('no', 'Hayır')
     ], string='Özel Paketleme Talebi')
     special_packaging_request_note = fields.Char(string='Özel Paketleme Talebi Notu')
-
+    document_numbers = fields.Char(string='İrsaliye Numaraları', compute='_compute_document_numbers')
+    transportation_codes = fields.Char(string="Taşıma Kodları", compute='_compute_transportation_codes')
+    effective_date_list = fields.Char(string="Etkili Tarihler", compute='_compute_effective_dates')
+    edespatch_date_list=fields.Char(string="İrsaliye Tarihi",compute= "_compute_edespatch_dates")
+    
     @api.model
     def create(self, vals):
 
@@ -146,7 +150,43 @@ class SaleOrder(models.Model):
         })
 
         return record
+    
+    
+    def _compute_document_numbers(self):
+        for order in self:
+            pickings = self.env['stock.picking'].search([('sale_id', '=', order.id)])
+            if pickings:
+                document_numbers_str = ', '.join(picking.document_number for picking in pickings)
+                order.document_numbers = document_numbers_str
+            else:
+                order.document_numbers = ''
 
+    def _compute_transportation_codes(self):
+        for order in self:
+            pickings = self.env['stock.picking'].search([('sale_id', '=', order.id)])
+            if pickings:
+                transportation_codes_str = ', '.join(picking.transportation_code for picking in pickings)
+                order.transportation_codes = transportation_codes_str
+            else:
+                order.transportation_codes = ''
+
+    def _compute_effective_dates(self):
+        for order in self:
+            pickings = self.env['stock.picking'].search([('sale_id', '=', order.id)])
+            if pickings:
+                effective_dates_str = ', '.join(picking.effective_date.strftime("%Y-%m-%d") for picking in pickings if picking.effective_date)
+                order.effective_date_list = effective_dates_str
+            else:
+                order.effective_date_list = ''
+    def _compute_edespatch_dates(self):
+        for order in self:
+            pickings = self.env['stock.picking'].search([('sale_id', '=', order.id)])
+            if pickings:
+                edespatch_dates_str = ', '.join(picking.edespatch_date.strftime("%Y-%m-%d") for picking in pickings if picking.edespatch_date)
+                order.edespatch_date_list = edespatch_dates_str
+            else:
+                order.edespatch_date_list = ''
+                
     def action_confirm(self):
 
         # C-Delivery Date kontrolü

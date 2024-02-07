@@ -57,5 +57,18 @@
                 </xpath>
             </field>
         </record>
+        <record id="view_sale_blanket_order_pivot" model="ir.ui.view">
+            <field name="name">sale.blanket.order.pivot</field>
+            <field name="model">sale.blanket.order</field>
+            <field name="arch" type="xml">
+                <pivot string="Sale Blanket Orders">
+                    <field name="ordered_total" type="measure"/>
+                    <field name="remaining_total" type="measure"/>
+                    <field name="invoiced_total" type="measure"/>
+                    <field name="remaining_invoice_total" type="measure"/>
+                </pivot>
+            </field>
+        </record>
+
     </data>
 </odoo>

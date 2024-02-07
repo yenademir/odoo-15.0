@@ -107,11 +107,42 @@ class SaleOrder(models.Model):
         ('no', 'Hayır')
     ], string='Özel Paketleme Talebi')
     special_packaging_request_note = fields.Char(string='Özel Paketleme Talebi Notu')
-    document_numbers = fields.Char(string='İrsaliye Numaraları', compute='_compute_document_numbers')
-    transportation_codes = fields.Char(string="Taşıma Kodları", compute='_compute_transportation_codes')
-    effective_date_list = fields.Char(string="Etkili Tarihler", compute='_compute_effective_dates')
-    edespatch_date_list=fields.Char(string="İrsaliye Tarihi",compute= "_compute_edespatch_dates")
-    
+    document_numbers = fields.Char(string='Document Numbers', compute='_compute_document_numbers')
+    transportation_codes = fields.Char(string="Transportation Codes", compute='_compute_transportation_codes')
+    date_done_list = fields.Char(string="Effective Date", compute='_compute_date_done_list')
+
+
+    def _compute_document_numbers(self):
+        for order in self:
+            pickings = self.env['stock.picking'].search([('sale_id', '=', order.id)])
+            if pickings:
+                document_numbers = [picking.document_number for picking in pickings if picking.document_number]
+                document_numbers_str = ', '.join(document_numbers)
+                order.document_numbers = document_numbers_str
+            else:
+                order.document_numbers = ''
+
+    def _compute_transportation_codes(self):
+        for order in self:
+            pickings = self.env['stock.picking'].search([('sale_id', '=', order.id)])
+            if pickings:
+                unique_transportation_codes = {picking.transportation_code for picking in pickings if picking.transportation_code}
+                transportation_codes_str = ', '.join(unique_transportation_codes)
+                order.transportation_codes = transportation_codes_str
+            else:
+                order.transportation_codes = ''
+
+
+    def _compute_date_done_list(self):
+        for order in self:
+            pickings = self.env['stock.picking'].search([('sale_id', '=', order.id)])
+            if pickings:
+                date_dones = [picking.date_done.strftime("%Y-%m-%d") for picking in pickings if picking.date_done]
+                date_dones_str = ', '.join(date_dones)
+                order.date_done_list = date_dones_str
+            else:
+                order.date_done_list = ''
+
     @api.model
     def create(self, vals):
 

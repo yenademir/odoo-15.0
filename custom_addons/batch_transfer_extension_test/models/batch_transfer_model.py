@@ -38,7 +38,8 @@ class StockPickingBatch(models.Model):
     transportation_code = fields.Char(
         string='Transportation Code',
         inverse='_inverse_transportation_code'
-    )    
+    )
+    logistic_company = fields.Many2one('res.partner', inverse='_inverse_logistic_company', string='Logistic Company', domain=[('is_company', '=', True)])
     import_decleration_number = fields.Char(string='Custom Decleration No', inverse='_inverse_import_decleration_number', store=True)
     edespatch_carrier_id = fields.Many2one('res.partner', string='Carrier Partner', domain=[('industry_id.id', '=', 139)], inverse='_inverse_edespatch_carrier_id')
     transport_type = fields.Selection([
@@ -58,45 +59,45 @@ class StockPickingBatch(models.Model):
     net_tonnage_measure = fields.Float(string='Net Tonnage Measure', inverse='_inverse_maritimetransport_fields')
     registry_cert_doc_ref = fields.Char(string='Registry Certificate Document Reference', inverse='_inverse_maritimetransport_fields')
     registry_port_location = fields.Char(string='Registry Port Location', inverse='_inverse_maritimetransport_fields')
-    edespatch_state = fields.Selection(
-        [('draft', 'Draft'), 
-         ('waiting', 'Waiting'), 
-         ('completed', 'Completed'), 
-         ('failed', 'Failed'), 
-         ('rejected', 'Rejected'),
-         ('different', 'E-despatch Statuses are different!')],
-        string='e-Despatch State',
-        compute='_compute_edespatch_state',
-        default='draft',
-        store=True
-    )
-    edespatch_number_sequence = fields.Many2one(
-        'ir.sequence', 
-        string='e-Despatch Number Sequence', 
-        domain=[('name', 'in', ['E-Despatch'])],
-        inverse='_inverse_edespatch_number_sequence'
-    )
+    # edespatch_state = fields.Selection(
+    #     [('draft', 'Draft'), 
+    #      ('waiting', 'Waiting'), 
+    #      ('completed', 'Completed'), 
+    #      ('failed', 'Failed'), 
+    #      ('rejected', 'Rejected'),
+    #      ('different', 'E-despatch Statuses are different!')],
+    #     string='e-Despatch State',
+    #     compute='_compute_edespatch_state',
+    #     default='draft',
+    #     store=True
+    # )
+    # edespatch_number_sequence = fields.Many2one(
+    #     'ir.sequence', 
+    #     string='e-Despatch Number Sequence', 
+    #     domain=[('name', 'in', ['E-Despatch'])],
+    #     inverse='_inverse_edespatch_number_sequence'
+    # )
 
-    edespatch_profile = fields.Selection(
-        [('TEMELIRSALIYE', 'Temel İrsaliye')], 
-        string='e-Despatch Profile', 
-        default='TEMELIRSALIYE', 
-        inverse='_inverse_edespatch_profile'
-    )
+    # edespatch_profile = fields.Selection(
+    #     [('TEMELIRSALIYE', 'Temel İrsaliye')], 
+    #     string='e-Despatch Profile', 
+    #     default='TEMELIRSALIYE', 
+    #     inverse='_inverse_edespatch_profile'
+    # )
 
-    edespatch_sender_id = fields.Many2one(
-        'edespatch.sender', 
-        string='e-Despatch Sender', 
-        domain=[('name', '=', ['urn:mail:irsaliyegb@yenaengineering.nl'])],
-        inverse='_inverse_edespatch_sender_id'
-    )
+    # edespatch_sender_id = fields.Many2one(
+    #     'edespatch.sender', 
+    #     string='e-Despatch Sender', 
+    #     domain=[('name', '=', ['urn:mail:irsaliyegb@yenaengineering.nl'])],
+    #     inverse='_inverse_edespatch_sender_id'
+    # )
 
-    edespatch_postbox_id = fields.Many2one(
-        'edespatch.postbox', 
-        string='e-Despatch Postbox',
-        domain=[('name', '=', ['urn:mail:irsaliyepk@gib.gov.tr'])],
-        inverse='_inverse_edespatch_postbox_id'
-    )
+    # edespatch_postbox_id = fields.Many2one(
+    #     'edespatch.postbox', 
+    #     string='e-Despatch Postbox',
+    #     domain=[('name', '=', ['urn:mail:irsaliyepk@gib.gov.tr'])],
+    #     inverse='_inverse_edespatch_postbox_id'
+    # )
 
     edespatch_delivery_type = fields.Selection(
         [
@@ -134,60 +135,65 @@ class StockPickingBatch(models.Model):
             else:
                 batch.edespatch_state = 'different'
                 
-    @api.onchange('edespatch_delivery_type')
-    def _onchange_edespatch_delivery_type(self):
-        if self.edespatch_delivery_type == 'edespatch':
-            sender = self.env['edespatch.sender'].search([('name', '=', 'urn:mail:irsaliyegb@yenaengineering.nl')], limit=1)
-            postbox = self.env['edespatch.postbox'].search([('name', '=', 'urn:mail:irsaliyepk@gib.gov.tr')], limit=1)
-            number_sequence = self.env['ir.sequence'].search([('name', '=', 'E-Despatch DespatchAdvice Numbering Sequence')], limit=1)
+    # @api.onchange('edespatch_delivery_type')
+    # def _onchange_edespatch_delivery_type(self):
+    #     if self.edespatch_delivery_type == 'edespatch':
+    #         sender = self.env['edespatch.sender'].search([('name', '=', 'urn:mail:irsaliyegb@yenaengineering.nl')], limit=1)
+    #         postbox = self.env['edespatch.postbox'].search([('name', '=', 'urn:mail:irsaliyepk@gib.gov.tr')], limit=1)
+    #         number_sequence = self.env['ir.sequence'].search([('name', '=', 'E-Despatch DespatchAdvice Numbering Sequence')], limit=1)
             
-            self.edespatch_sender_id = sender.id if sender else False
-            self.edespatch_postbox_id = postbox.id if postbox else False
-            self.edespatch_number_sequence = number_sequence.id if number_sequence else False
+    #         self.edespatch_sender_id = sender.id if sender else False
+    #         self.edespatch_postbox_id = postbox.id if postbox else False
+    #         self.edespatch_number_sequence = number_sequence.id if number_sequence else False
 
-    @api.model
-    def create(self, vals):
-        # İlk olarak batch oluşturulur
-        batch = super(StockPickingBatch, self).create(vals)
+    # @api.model
+    # def create(self, vals):
+    #     # İlk olarak batch oluşturulur
+    #     batch = super(StockPickingBatch, self).create(vals)
         # Varsayılan değerler ile picking güncellenir
-        default_values = {
-            'edespatch_number_sequence': batch.edespatch_number_sequence.id,
-            'edespatch_profile': batch.edespatch_profile,
-            'edespatch_sender_id': batch.edespatch_sender_id.id,
-            'edespatch_postbox_id': batch.edespatch_postbox_id.id
-        }
-        batch.picking_ids.write(default_values)
-        return batch
+    #     default_values = {
+    #         'edespatch_number_sequence': batch.edespatch_number_sequence.id,
+    #         'edespatch_profile': batch.edespatch_profile,
+    #         'edespatch_sender_id': batch.edespatch_sender_id.id,
+    #         'edespatch_postbox_id': batch.edespatch_postbox_id.id
+    #     }
+    #     batch.picking_ids.write(default_values)
+    #     return batch
     
-    @api.depends('picking_ids.edespatch_number_sequence')
-    def _inverse_edespatch_number_sequence(self):
-        for batch in self:
-            batch.picking_ids.write({'edespatch_number_sequence': batch.edespatch_number_sequence.id})
+    # @api.depends('picking_ids.edespatch_number_sequence')
+    # def _inverse_edespatch_number_sequence(self):
+    #     for batch in self:
+    #         batch.picking_ids.write({'edespatch_number_sequence': batch.edespatch_number_sequence.id})
 
-    @api.depends('picking_ids.edespatch_profile')
-    def _inverse_edespatch_profile(self):
-        for batch in self:
-            batch.picking_ids.write({'edespatch_profile': batch.edespatch_profile})
+    # @api.depends('picking_ids.edespatch_profile')
+    # def _inverse_edespatch_profile(self):
+    #     for batch in self:
+    #         batch.picking_ids.write({'edespatch_profile': batch.edespatch_profile})
 
-    @api.depends('picking_ids.edespatch_sender_id')
-    def _inverse_edespatch_sender_id(self):
-        for batch in self:
-            batch.picking_ids.write({'edespatch_sender_id': batch.edespatch_sender_id.id})
+    # @api.depends('picking_ids.edespatch_sender_id')
+    # def _inverse_edespatch_sender_id(self):
+    #     for batch in self:
+    #         batch.picking_ids.write({'edespatch_sender_id': batch.edespatch_sender_id.id})
 
-    @api.depends('picking_ids.edespatch_postbox_id')
-    def _inverse_edespatch_postbox_id(self):
-        for batch in self:
-            batch.picking_ids.write({'edespatch_postbox_id': batch.edespatch_postbox_id.id})
+    # @api.depends('picking_ids.edespatch_postbox_id')
+    # def _inverse_edespatch_postbox_id(self):
+    #     for batch in self:
+    #         batch.picking_ids.write({'edespatch_postbox_id': batch.edespatch_postbox_id.id})
             
-    @api.depends('picking_ids.edespatch_carrier_id')
-    def _inverse_edespatch_carrier_id(self):
-        for batch in self:
-            batch.picking_ids.write({'edespatch_carrier_id': batch.edespatch_carrier_id.id})
+    # @api.depends('picking_ids.edespatch_carrier_id')
+    # def _inverse_edespatch_carrier_id(self):
+    #     for batch in self:
+    #         batch.picking_ids.write({'edespatch_carrier_id': batch.edespatch_carrier_id.id})
 
     @api.depends('picking_ids.transportation_code')
     def _inverse_transportation_code(self):
         for batch in self:
             batch.picking_ids.write({'transportation_code': batch.transportation_code})
+
+    @api.depends('picking_ids.logistic_company')
+    def _inverse_logistic_company(self):
+        for batch in self:
+            batch.picking_ids.write({'logistic_company': batch.logistic_company})
 
     def _inverse_situation(self):
         for batch in self:

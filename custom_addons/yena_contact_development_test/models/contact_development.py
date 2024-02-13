@@ -105,3 +105,18 @@ class ResPartner(models.Model):
             self.lang = 'tr_TR'
         else:
             self.lang = 'en_US'
+            
+    def action_view_stock_moves(self):
+        self.ensure_one()
+       
+
+        # Define the domain to filter stock moves by the products related to the current partner as customer
+        domain = [('customer', '=', self.id)]
+        return {
+            'type': 'ir.actions.act_window',
+            'name': 'Products',
+            'view_mode': 'tree,form',
+            'res_model': 'product.product',
+            'domain': domain,
+            'context': {'default_customer': self.id},
+        }

@@ -13,11 +13,17 @@ class Project(models.Model):
         self.ensure_one()
         sale_ids = []
 
-        # Batch transferin adı ile eşleşen purchase'ları bul
-        sales = self.env['sale.order'].search([('project_sales', '=', self.name)])
+        # Bu projeye ait satın alma siparişlerini bul
+        sales = self.env['sale.order'].search([('project_sales', '=', self.id)])
 
         for sale in sales:
             sale_ids.append(sale.id)
+
+        context = {
+            'default_project_sales': self.id,  # Satın alma emri oluşturulurken projenin ID'sini varsayılan olarak ayarla
+            'search_default_project_sales': self.id,  # Listeyi sadece bu projeye ait satın alma siparişleriyle sınırla
+            'create': True,
+        }
 
         return {
             'type': 'ir.actions.act_window',
@@ -25,18 +31,24 @@ class Project(models.Model):
             'view_mode': 'tree,form',
             'res_model': 'sale.order',
             'domain': [('id', 'in', sale_ids)],
-            'context': {'create': True},
+            'context': context,
         }
     
     def action_show_purchases(self):
         self.ensure_one()
         purchase_ids = []
 
-        # Batch transferin adı ile eşleşen purchase'ları bul
-        sales = self.env['purchase.order'].search([('project_purchase', '=', self.name)])
+        # Bu projeye ait satın alma siparişlerini bul
+        purchases = self.env['purchase.order'].search([('project_purchase', '=', self.id)])
 
-        for sale in sales:
-            purchase_ids.append(sale.id)
+        for purchase in purchases:
+            purchase_ids.append(purchase.id)
+
+        context = {
+            'default_project_purchase': self.id,  # Satın alma emri oluşturulurken projenin ID'sini varsayılan olarak ayarla
+            'search_default_project_purchase': self.id,  # Listeyi sadece bu projeye ait satın alma siparişleriyle sınırla
+            'create': True,
+        }
 
         return {
             'type': 'ir.actions.act_window',
@@ -44,7 +56,7 @@ class Project(models.Model):
             'view_mode': 'tree,form',
             'res_model': 'purchase.order',
             'domain': [('id', 'in', purchase_ids)],
-            'context': {'create': True},
+            'context': context,
         }
 
     def action_show_transfers(self):

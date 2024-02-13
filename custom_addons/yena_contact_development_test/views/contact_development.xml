@@ -236,5 +236,25 @@
             <xpath expr="//field[@name='email_bounced']" position="replace"/>
         </field>
     </record>-->
-</odoo>
 
+    <!-- button name i odoo dakine göre değiştirilecek. web'den inspect e basarak buton id sini görebilirsiniz  -->
+    <record id="view_contact_related_products_form_inherit" model="ir.ui.view">
+        <field name="name">res.partner.form.inherit</field>
+        <field name="model">res.partner</field>
+        <field name="inherit_id" ref="base.view_partner_form"/>
+        <field name="arch" type="xml">
+            <xpath expr="//button[@name='441']" position="after">
+                
+                <button name="action_view_stock_moves" type="object" string="Products" class="oe_highlight" icon="fa-th-large"/>                
+            </xpath>
+        </field>
+    </record>
+    
+    <record id="action_view_stock_moves" model="ir.actions.act_window">
+        <field name="name">Products</field>
+        <field name="res_model">stock.move</field>
+        <field name="view_mode">tree,form</field>
+        <field name="domain">[('partner_id', '=', active_id)]</field>
+        <field name="context">{'default_partner_id': active_id}</field>
+    </record>
+</odoo>

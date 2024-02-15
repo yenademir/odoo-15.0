@@ -81,9 +81,21 @@ class SaleOrder(models.Model):
                 order.transportation_codes = ''
                 
     def tax_button(self):
+        # Vergi referanslarını al
+        tax_to_clear_ids = [
+            self.env.ref('__export__.account_tax_6_47f7ef82').id,
+            self.env.ref('__export__.account_tax_9_7f4d3d4b').id
+        ]
         for order in self:
-            for line in order.order_line:
-                line.tax_id = [(6, 0, order.tax_selection.ids)]
+            # Eğer seçilen vergi, boşaltılacak vergi ID'lerinden biriyse
+            if order.tax_selection.id in tax_to_clear_ids:
+                # Tüm satış siparişi satırlarındaki vergileri temizle
+                for line in order.order_line:
+                    line.tax_id = [(5, 0, 0)]
+            else:
+                # Aksi takdirde, seçilen vergiyi tüm satırlara uygula
+                for line in order.order_line:
+                    line.tax_id = [(6, 0, [order.tax_selection.id])]
 
 
     def _compute_date_done_list(self):

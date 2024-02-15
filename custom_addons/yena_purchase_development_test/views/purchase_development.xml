@@ -36,7 +36,6 @@
                 </xpath>
                 <xpath expr="//field[@name='price_subtotal']" position="before">
                     <field name="production_status" optional="hide"/>
-                    <field name="status" optional="hide"/>
                 </xpath>
                  <xpath expr="//field[@name='order_line']/tree//field[@name='product_packaging_qty']" position="attributes">
                     <attribute name="optional">hidden</attribute>
@@ -118,6 +117,9 @@
                 </xpath>
                 <xpath expr="(//field[@name='date_approve'])[1]" position="attributes">
                     <attribute name="widget">date</attribute>
+                </xpath>
+                <xpath expr="(//field[@name='date_approve'])[1]" position="attributes">
+                    <attribute name="readonly">0</attribute>
                 </xpath>
             </field>
         </record>

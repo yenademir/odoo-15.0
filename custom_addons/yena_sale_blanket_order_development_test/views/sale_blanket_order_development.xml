@@ -22,6 +22,9 @@
                 <field name="sequence" position="attributes">
                     <attribute name="invisible">1</attribute>
                 </field>
+                <xpath expr="//field[@name='taxes_id']" position="attributes">
+                    <attribute name="attrs">{'required': [(0, '=', 1)], 'invisible': [('display_type', '=', True)]}</attribute>
+                </xpath>
                 <xpath expr="//field[@name='amount_tax']" position="after">
                     <field name="ordered_total"/>
                     <field name="remaining_total"/>

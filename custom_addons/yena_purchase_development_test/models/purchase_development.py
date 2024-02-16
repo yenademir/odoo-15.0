@@ -47,6 +47,17 @@ class PurchaseOrder(models.Model):
                 'state': 'sent',
             })
 
+    tax_confirm = fields.Many2many(
+        'account.tax', 
+        string='Confirm Taxes', 
+        help='Select taxes to confirm and apply to all order lines.'
+    )
+
+    def action_confirm_taxes(self):
+        for order in self:
+            for line in order.order_line:
+                line.taxes_id = [(6, 0, order.tax_confirm.ids)]
+
     def _inter_company_create_sale_order(self, dest_company):
         super(PurchaseOrder, self)._inter_company_create_sale_order(dest_company)
         # Satın almadan satışa aktarılacak verileri alın

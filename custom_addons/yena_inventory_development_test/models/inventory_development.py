@@ -69,11 +69,11 @@ class Picking(models.Model):
         for record in self:
             picking_type = record.env['stock.picking.type'].browse(vals.get('picking_type_id', record.picking_type_id.id))
 
-            if picking_type.sequence_code == 'IN':  # Receipts
+            if picking_type.sequence_code == 'IN': 
                 purchase_order = record.env['purchase.order'].search([('name', '=', record.origin)], limit=1)
                 if purchase_order:
                     vals['scheduled_date'] = purchase_order.delivery_date
-            elif picking_type.sequence_code == 'OUT':  # Delivery Orders
+            elif picking_type.sequence_code == 'OUT':  
                 sale_order = record.env['sale.order'].search([('name', '=', record.origin)], limit=1)
                 if sale_order:
                     vals['scheduled_date'] = sale_order.commitment_date
@@ -171,18 +171,15 @@ class ProductTemplate(models.Model):
     def default_get(self, fields_list):
         res = super(ProductTemplate, self).default_get(fields_list)
 
-        # standard_price default değeri ayarlama
         if 'standard_price' not in res:
             res['standard_price'] = 1.0
 
-        # MTO rota ayarlama
-        mto_route_id = 1  # "MTO" rotasının ID'si linkteki web#id'den bulunacak
+        mto_route_id = 1 
         if 'route_ids' not in res:
             res['route_ids'] = [(4, mto_route_id)]
         else:
             res['route_ids'].append((4, mto_route_id))
 
-        # Varsayılan satıcı ayarlama
         if 'default_seller' in self._context:
             seller_id = self.env['res.partner'].browse(self._context['default_seller'])
             if 'seller_ids' in res:
@@ -191,19 +188,16 @@ class ProductTemplate(models.Model):
                 res['seller_ids'] = [(0, 0, {'name': seller_id.id})]
         if 'default_seller' in self._context:
             seller_id = self.env['res.partner'].browse(self._context['default_seller'])
-            # İlk satır için veriler
             first_line = {
                 'name': 219,
                 'currency_id': 1,
                 'company_id': 2,
             }
-            # İkinci satır için veriler
             second_line = {
                 'name': 94654,
                 'currency_id': 1,
                 'company_id': 1,
             }
-            # Eğer seller_ids anahtarı zaten varsa bu satırları ekle, yoksa yeni bir liste oluştur
             if 'seller_ids' in res:
                 res['seller_ids'].extend([(0, 0, first_line), (0, 0, second_line)])
             else:
@@ -219,10 +213,10 @@ class ProductTemplate(models.Model):
             data = {
                 'odooid': product_id,
                 'product_name': product_name,
-                'original_filename': filename  # Orijinal dosya adını burada gönderin
+                'original_filename': filename  
             }
             response = requests.post(url, files=files, data=data)
-            response.raise_for_status()  # Check for errors
+            response.raise_for_status() 
             return response.json()['data']['technical_drawing_url']
         except Exception as e:
             raise
@@ -246,7 +240,6 @@ class ProductTemplate(models.Model):
                 self.name
             )
 
-            # Teknik çizimin URL'sini güncelle ve technical_drawing alanını boşalt
             self.write({
                 'technical_drawing_url': drawing_url,
                 'technical_drawing': False

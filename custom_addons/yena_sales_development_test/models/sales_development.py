@@ -5,9 +5,6 @@ from odoo.exceptions import UserError
 class SaleOrder(models.Model):
     _inherit = 'sale.order'
 
-    #tax_selection diye bir field oluştur tax modeliyle related olacak 
-    #def fonksiyonu yazılacak tax_selectionın yanındaki butona basılınca çalışacak
-    #uygula butonuna basılıcna tax_selectiondaki verileri sale.order.line'daki tax_id alanına yazdıracak
     bid_time=fields.Char(string="Bid Time")
     contact_id = fields.Many2one('res.partner', string='Contact Person', store=True)
     customer_reference=fields.Char(string="Customer Reference No", store=True)
@@ -34,7 +31,6 @@ class SaleOrder(models.Model):
     @api.depends('order_line.product_uom_qty', 'order_line.qty_invoiced')
     def _compute_invoice_report(self):
         for order in self:
-            # Varsayılan olarak "nothinginvoiced" varsayalım
             invoice_status = "nothinginvoiced"
             partially_invoiced = False
             fully_invoiced = True
@@ -44,12 +40,11 @@ class SaleOrder(models.Model):
                     if line.qty_invoiced < line.product_uom_qty:
                         partially_invoiced = True
                         fully_invoiced = False
-                        break  # En az bir satır kısmen faturalandırıldıysa döngüden çık
+                        break
                     else:
-                        # Bu satır tamamen faturalandırıldı, döngü devam eder
                         invoice_status = "fullyinvoiced"
                 else:
-                    fully_invoiced = False  # Eğer qty_invoiced 0 ise tamamen faturalandırılmamıştır
+                    fully_invoiced = False
 
             if partially_invoiced:
                 invoice_status = "partiallyinvoice"
@@ -81,19 +76,15 @@ class SaleOrder(models.Model):
                 order.transportation_codes = ''
                 
     def tax_button(self):
-        # Vergi referanslarını al
         tax_to_clear_ids = [
             self.env.ref('__export__.account_tax_6_47f7ef82').id,
             self.env.ref('__export__.account_tax_9_7f4d3d4b').id
         ]
         for order in self:
-            # Eğer seçilen vergi, boşaltılacak vergi ID'lerinden biriyse
             if order.tax_selection.id in tax_to_clear_ids:
-                # Tüm satış siparişi satırlarındaki vergileri temizle
                 for line in order.order_line:
                     line.tax_id = [(5, 0, 0)]
             else:
-                # Aksi takdirde, seçilen vergiyi tüm satırlara uygula
                 for line in order.order_line:
                     line.tax_id = [(6, 0, [order.tax_selection.id])]
 
@@ -116,11 +107,9 @@ class SaleOrder(models.Model):
         if company_id == 1:
             return super().create(vals)
 
-        # customer_reference'ın rfq_reference'a kopyalandığını kontrol edin.
         if 'customer_reference' in vals and vals['customer_reference']:
             vals['rfq_reference'] = vals['customer_reference']
 
-        # rfq_date'i bugünün tarihi ile doldurun.
         vals['rfq_date'] = fields.Date.today()
 
         record = super().create(vals)
@@ -128,7 +117,6 @@ class SaleOrder(models.Model):
         if not record.customer_reference:
             return record
 
-        # satış oluşturulduktan sonra bir proje oluştur.
         project_vals = {
             'name': record.name + '-' + record.customer_reference,
             'partner_id': record.partner_id.id,
@@ -136,10 +124,8 @@ class SaleOrder(models.Model):
         }
         project = self.env['project.project'].create(project_vals)
 
-        # Proje oluşturulduktan sonra analitik hesap ID'yi al
         analytic_account_id = project.analytic_account_id.id if project.analytic_account_id else None
 
-        # Son olarak, satışa analitik hesabı ve proje ID'yi ekleyin.
         record.write({
             'analytic_account_id': analytic_account_id,
             'project_sales': project.id,
@@ -149,18 +135,15 @@ class SaleOrder(models.Model):
         return record
 
     def action_confirm(self):
-        # C-Delivery Date kontrolü
         if not self.commitment_date:
             raise UserError('The C-Delivery Date is mandatory! Please add this date and try again.')
     
-        # company_id 1 ise, standart onay işlemi yapılır ve özel işlemlerden kaçınılır
         if self.company_id.id == 1:
             return super(SaleOrder, self).action_confirm()
     
-        # Diğer durumlarda, öncelikle standart onay işlemi yapılır
         res = super(SaleOrder, self).action_confirm()
     
-        current_user = self.env.user  # Şu anki kullanıcıyı al
+        current_user = self.env.user
         incoterm = self.env['account.incoterms'].browse(10)
     
         for order in self:
@@ -173,12 +156,10 @@ class SaleOrder(models.Model):
                     'incoterm_id': incoterm.id
                 })
     
-                # İlişkili tüm satın alma siparişi satırlarını sil
                 purchase_order.order_line.unlink()
     
-                # Yeni satın alma siparişi satırlarını oluştur
                 for so_line in order.order_line:
-                    new_price_unit = so_line.price_unit * 0.92  # Örnek indirim oranı
+                    new_price_unit = so_line.price_unit * 0.92
                     po_line = purchase_order.order_line.create({
                         'order_id': purchase_order.id,
                         'product_id': so_line.product_id.id,
@@ -188,20 +169,16 @@ class SaleOrder(models.Model):
                         'name': so_line.name,
                         'date_planned': purchase_order.date_order,
                         'account_analytic_id': order.analytic_account_id.id,
-                        'sale_line_id': so_line.id,  # Satış siparişi satırını bağla
+                        'sale_line_id': so_line.id,
                     })
-                    # Satış siparişi satırına geri bağlantı oluştur
                     so_line.purchase_line_ids = [(4, po_line.id)]
     
-            # İlişkili tüm teslimat emirlerini bul
             delivery_orders = self.env['stock.picking'].search([('origin', '=', order.name)])
-            # İlişkili tüm teslimat emirlerini güncelle
             for delivery_order in delivery_orders:
                 delivery_order.write({
                     'project_transfer': [(6, 0, order.project_sales.ids)],
                 })
     
-        # Eğer customer_reference değiştiyse analitik hesap ve proje adını güncelle
         if self.rfq_reference != self.customer_reference:
             project = self.project_sales
             project.write({
@@ -217,7 +194,6 @@ class SaleOrder(models.Model):
     def action_quotation_sent(self):
         res = super(SaleOrder, self).action_quotation_sent()
 
-        # Quotation gönderildiğinde quo_date'i güncelle
         for record in self:
             record.write({
                 'quo_date': fields.Date.today(),
@@ -241,7 +217,6 @@ class SaleOrder(models.Model):
         return {'domain': {'contact_id': [('parent_id', '=', self.partner_id.id), ('type', '=', 'contact')]}}
 
     def print_proposal_form(self):
-        # id'si 2298 olan raporu indir
         return self.env.ref('__export__.ir_act_report_xml_2298_852ac486').report_action(self)
 
     class SaleOrderLine(models.Model):
@@ -250,7 +225,6 @@ class SaleOrder(models.Model):
         product_delivery_date = fields.Date(string="Product Delivery Date")
 
 
-#Intercompany & autofill
 
 class PurchaseOrder(models.Model):
     _inherit = "purchase.order"
@@ -258,7 +232,6 @@ class PurchaseOrder(models.Model):
     def _inter_company_create_sale_order(self, dest_company):
         super(PurchaseOrder, self)._inter_company_create_sale_order(dest_company)
 
-        # Satın almadan satışa aktarılacak verileri alın
         purchase_order = self.env['purchase.order'].browse(self.id)
 
         project = purchase_order.project_purchase
@@ -267,20 +240,16 @@ class PurchaseOrder(models.Model):
         else:
             analytic_account_id = False
 
-        # Şirket ve partner koşulları
         if purchase_order.company_id.id == 2 and purchase_order.partner_id.id == 1:
-            # Satış siparişi değerleri
             sale_order_vals = {
                 'project_sales': project.id if project else False,
                 'analytic_account_id': analytic_account_id,
                 'customer_reference': purchase_order.customer_reference,
             }
 
-            # Satış siparişini bulun
             sale_order = self.env['sale.order'].search([('auto_purchase_order_id', '=', self.id)], limit=1)
             sale_order.write(sale_order_vals)
 
-            # Satın alma siparişi satırlarını döngüleyin ve satış siparişi satırlarını güncelleyin
             for po_line, so_line in zip(purchase_order.order_line, sale_order.order_line):
                 sale_line_vals = {
                     'price_unit': po_line.price_unit,

@@ -17,9 +17,9 @@ class PurchaseOrder(models.Model):
     @api.onchange('company_id')
     def _onchange_company_id(self):
         if self.company_id.id == 1:
-            self.incoterm_id = 13  # company_id 1 olduğunda incoterm_id'yi 13 yap
+            self.incoterm_id = 13
         elif self.company_id.id == 2:
-            self.incoterm_id = 1   # company_id 2 olduğunda incoterm_id'yi 1 yap
+            self.incoterm_id = 1
 
     @api.onchange('project_purchase')
     def _onchange_project_purchase(self):
@@ -44,14 +44,11 @@ class PurchaseOrder(models.Model):
      for order in self:
         for line in order.order_line:
             if order.tax_selection_purchase and order.tax_selection_purchase.id == self.env.ref('__export__.account_tax_6_47f7ef82').id:
-                # Vergi alanını boşalt
                 line.taxes_id = [(5, 0, 0)]
             else:
-                # Seçilen vergiyi tüm satırlara uygula
                 if order.tax_selection_purchase:
                     line.taxes_id = [(6, 0, [order.tax_selection_purchase.id])]
                 else:
-                    # Eğer vergi seçimi yapılmamışsa, vergi alanını boşalt
                     line.taxes_id = [(5, 0, 0)]
 
 
@@ -63,9 +60,19 @@ class PurchaseOrder(models.Model):
                 'state': 'sent',
             })
 
+    tax_confirm = fields.Many2many(
+        'account.tax', 
+        string='Confirm Taxes', 
+        help='Select taxes to confirm and apply to all order lines.'
+    )
+
+    def action_confirm_taxes(self):
+        for order in self:
+            for line in order.order_line:
+                line.taxes_id = [(6, 0, order.tax_confirm.ids)]
+
     def _inter_company_create_sale_order(self, dest_company):
         super(PurchaseOrder, self)._inter_company_create_sale_order(dest_company)
-        # Satın almadan satışa aktarılacak verileri alın
         purchase_order = self.env['purchase.order'].browse(self.id)
 
         project = purchase_order.project_purchase
@@ -74,20 +81,16 @@ class PurchaseOrder(models.Model):
         else:
             analytic_account_id = False
 
-        # Şirket ve partner koşulları
         if purchase_order.company_id.id == 2 and purchase_order.partner_id.id == 1:
-            # Satış siparişi değerleri
             sale_order_vals = {
                 'project_sales': project.id if project else False,
                 'analytic_account_id': analytic_account_id,
                 'customer_reference': purchase_order.customer_reference,
             }
 
-            # Satış siparişini bulun
             sale_order = self.env['sale.order'].search([('auto_purchase_order_id', '=', self.id)], limit=1)
             sale_order.write(sale_order_vals)
 
-            # Satın alma siparişi satırlarını döngüleyin ve satış siparişi satırlarını güncelleyin
             for po_line, so_line in zip(purchase_order.order_line, sale_order.order_line):
                 sale_line_vals = {
                     'price_unit': po_line.price_unit,
@@ -103,7 +106,6 @@ class PurchaseOrder(models.Model):
     def _onchange_partner_id(self):
         self.contact_id = False
         return {'domain': {'contact_id': [('parent_id', '=', self.partner_id.id), ('type', '=', 'contact')]}}
-    #contact person'a şirketin yazılmasına gerek yok
 
     @api.depends('user_id')
     def _compute_is_current_user(self):

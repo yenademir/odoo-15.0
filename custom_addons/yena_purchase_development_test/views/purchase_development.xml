@@ -143,6 +143,10 @@
             <xpath expr="//field[@name='incoterm_id']" position="after">
                 <field name="payment_term_id"/>
             </xpath>
+            <xpath expr="//field[@name='currency_id']" position="after">
+                <field name="tax_confirm" widget="many2many_tags"/>
+                <button name="action_confirm_taxes" string="Confirm Taxes" type="object" class="oe_highlight"/>
+            </xpath>
         </field>
     </record>
     <record id="view_order_line_tree_inherit" model="ir.ui.view">
@@ -162,8 +166,8 @@
                 <field name="qty_received" readonly="1"/>
                 <field name="price_unit" optional="hide" readonly="1"/>
                 <field name="price_subtotal" optional="hide" readonly="1"/>
-                <field name="currency_id" invisible="1" readonly="1"/>           
-                <field name="tags" widget="many2many_tags" optional="hide"/>
+                <field name="currency_id" invisible="1" readonly="1"/>
+                <field name="tags" widget="many2many_tags" optional="hide" string="Order Tags"/>
                 <field name="production_status"/>
             </tree>
         </field>
@@ -186,7 +190,7 @@
         <field name="inherit_id" ref="purchase.purchase_order_form"/>
         <field name="arch" type="xml">      
                 <xpath expr="//page/field[@name='order_line']/tree//field[@name='taxes_id']" position="attributes">
-                <attribute name="optional">hide</attribute>
+                <attribute name="optional">show</attribute>
             </xpath>
         </field>
     </record>

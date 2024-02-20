@@ -51,15 +51,16 @@ class Picking(models.Model):
         }  
     def button_validate(self):
         res = super(Picking, self).button_validate()
-        if self.state == 'done' and self.picking_type_id.id == 2:
-            existing_activities = self.env['mail.activity'].search([
-                ('res_model_id.model', '=', 'stock.picking'),
-                ('res_id', '=', self.id),
-                ('activity_type_id', '=', self.env.ref('yena_inventory_development_test.activity_type_custom').id)
-            ])
-            if not existing_activities:
-                activity_vals = self._create_scheduled_activity()
-                self.env['mail.activity'].create(activity_vals)
+        for record in self:
+            if record.state == 'done' and record.picking_type_id.id == 2:
+                existing_activities = self.env['mail.activity'].search([
+                    ('res_model_id.model', '=', 'stock.picking'),
+                    ('res_id', '=', record.id),
+                    ('activity_type_id', '=', self.env.ref('yena_inventory_development_test.activity_type_custom').id)
+                ])
+                if not existing_activities:
+                    activity_vals = record._create_scheduled_activity()
+                    self.env['mail.activity'].create(activity_vals)
         return res
     
     def _update_scheduled_date(self, vals):
@@ -109,16 +110,8 @@ class StockMove(models.Model):
 class ProductTemplate(models.Model):
     _inherit = 'product.template'
 
-    coating = fields.Selection([
-        ("hot_dip_galvanized", "Hot Dip Galvanized"),
-        ("electrogalvanized", "Electrogalvanized"),
-        ("centrifugal_galvanise", "Centrifugal galvanise"),
-        ("electrostatic_powder_coating_red", "Electrostatic powder coating Red"),
-        ("epoxy_coating", "Epoxy Coating"),
-        ("uncoated", "Uncoated"),
-        ("electrostatic_powder_coating_black", "Electrostatic powder coating Black"),
-        ("shop_primer", "Shop Primer")
-    ], string="Coating")
+    coating = fields.Many2many('coating.type', string="Coatings")
+
     material = fields.Many2many('product.yena_material', string="Material")
     min_order_qty = fields.Char(string="Min. Order Quantity")
     customer = fields.Many2one('res.partner', domain=[('is_company', '=', True)], string="Customer")
@@ -275,7 +268,7 @@ class PackageTypes(models.Model):
 class PurchaseOrderLine(models.Model):
     _inherit = 'purchase.order.line'
 
-    coating = fields.Selection(related="product_id.coating", string="Coating", readonly=True)
+    coating = fields.Many2many(related="product_id.coating", string="Coatings", readonly=True)
     unit_weight = fields.Float(related="product_id.weight", string="Unit Weight", readonly=True)
     product_category = fields.Many2one('product.category', related="product_id.categ_id", string="Product Category")
     product_type = fields.Selection(related='product_id.detailed_type', string='Product Type', store=True)
@@ -301,7 +294,7 @@ class SaleOrderLine(models.Model):
     product_type = fields.Selection(related='product_id.detailed_type', string='Product Type', store=True)
     product_category = fields.Many2one('product.category', related="product_id.categ_id", string="Product Category")
     totalweight = fields.Float(string='Total Weight', compute='_compute_total_weight', store=True, readonly=True)
-    coating = fields.Selection(related="product_id.coating", string="Coating", readonly=True)
+    coating = fields.Many2many(related="product_id.coating", string="Coatings", readonly=True)
     pricekg = fields.Float(compute='_compute_pricekg', string='KG Price', readonly=True, store=True)
     unit_weight = fields.Float(related="product_id.weight", string="Unit Weight", readonly=True)
 

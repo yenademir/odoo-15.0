@@ -21,8 +21,8 @@ class ProjectCompareLineBvtoTr(models.Model):
     yena_bv_purchase_weight = fields.Float(string='Yena BV Purchase Weight (kg)')  # Yeni alan
     yena_tr_sale_weight = fields.Float(string='Yena TR Sale Weight (kg)')  # Yeni alan
 
-#     yena_tr_sale_qty = fields.Float(string='Yena TR Sale Quantity')
-#     yena_bv_purchase_qty = fields.Float(string='Yena BV Purchase Quantity')
+#   yena_tr_sale_qty = fields.Float(string='Yena TR Sale Quantity')
+#   yena_bv_purchase_qty = fields.Float(string='Yena BV Purchase Quantity')
 
 class Project(models.Model):
     _inherit = 'project.project'

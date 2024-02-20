@@ -65,7 +65,7 @@ class StockPicking(models.Model):
          ('rejected', 'Rejected'),
          ('different', 'E-despatch Statuses are different!')],
         string='e-Despatch State',
-        compute='_compute_edespatch_state',
+        #compute='_compute_edespatch_state',
         default='draft',
         store=True
     )

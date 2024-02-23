@@ -8,7 +8,11 @@ class SaleOrder(models.Model):
     contact_id = fields.Many2one('res.partner', string='Contact Person', store=True)
     customer_reference=fields.Char(string="Customer Reference No", store=True)
     delivery_date=fields.Char(string="C-Delivery Date (Text)")
-    invoice_report=fields.Selection([("fullyinvoiced","Fully Invoiced"),("partiallyinvoice","Partially Invoiced"),("nothinginvoiced","Nothing Invoiced")],string="Invoice Report")
+    invoice_report = fields.Selection([
+        ("fullyinvoiced", "Fully Invoiced"),
+        ("partiallyinvoice", "Partially Invoiced"),
+        ("nothinginvoiced", "Nothing Invoiced")
+    ], string="Invoice Report", compute='_compute_invoice_report', store=True),
     lost=fields.Many2one("crm.lost.reason",string="Lost Reason")
     lost_reason=fields.Many2one("crm.lost.reason",string="Lost Reason")
     project_sales=fields.Many2one("project.project",string="Project Number", store=True)
@@ -17,100 +21,49 @@ class SaleOrder(models.Model):
     rfq_reference=fields.Char(string="RFQ Reference", store=True)
     is_current_user = fields.Boolean(compute='_compute_is_current_user')
     account_note = fields.Html(string="Account Note")
-
-    customer_meeting = fields.Selection([
-        ('yes', 'Evet'),
-        ('no', 'Hayır')
-    ], string='Müşteri İle Yapılan Görüşmeler')
-    customer_meeting_note = fields.Char(string='Müşteri İle Yapılan Görüşmeler Notu')
-
-    initial_info_request = fields.Selection([
-        ('yes', 'Evet'),
-        ('no', 'Hayır')
-    ], string='Müşteriden Gelen Talepte İlk Bilgiler')
-    initial_info_request_note = fields.Char(string='Müşteriden Gelen Talepte İlk Bilgiler Notu')
-
-    metrage_study = fields.Selection([
-        ('yes', 'Evet'),
-        ('no', 'Hayır')
-    ], string='Metraj Çalışması')
-    metrage_study_note = fields.Char(string='Metraj Çalışması Notu')
-
-    technical_inspection = fields.Selection([
-        ('yes', 'Evet'),
-        ('no', 'Hayır')
-    ], string='Teknik İncelemeler')
-    technical_inspection_note = fields.Char(string='Teknik İncelemeler Notu')
-
-    drawing_sufficiency = fields.Selection([
-        ('yes', 'Evet'),
-        ('no', 'Hayır')
-    ], string='Çizimlerin Yeterliliği')
-    drawing_sufficiency_note = fields.Char(string='Çizimlerin Yeterliliği Notu')
-
-    drawing_details = fields.Selection([
-        ('yes', 'Evet'),
-        ('no', 'Hayır')
-    ], string='Çizim Detayları')
-    drawing_details_note = fields.Char(string='Çizim Detayları Notu')
-
-    raw_material_availability = fields.Selection([
-        ('yes', 'Evet'),
-        ('no', 'Hayır')
-    ], string='Hammadde Tedarik Edilebilirliği')
-    raw_material_availability_note = fields.Char(string='Hammadde Tedarik Edilebilirliği Notu')
-
-    surface_treatment_info = fields.Selection([
-        ('yes', 'Evet'),
-        ('no', 'Hayır')
-    ], string='Yüzey İşlemi Bilgileri')
-    surface_treatment_info_note = fields.Char(string='Yüzey İşlemi Bilgileri Notu')
-
-    non_steel_elements = fields.Selection([
-        ('yes', 'Evet'),
-        ('no', 'Hayır')
-    ], string='Bağlantı Elemanları ve Çelik Dışı Parçalar')
-    non_steel_elements_note = fields.Char(string='Bağlantı Elemanları ve Çelik Dışı Parçalar Notu')
-
-    assembly_scope = fields.Selection([
-        ('yes', 'Evet'),
-        ('no', 'Hayır')
-    ], string='Montaj Kapsamı')
-    assembly_scope_note = fields.Char(string='Montaj Kapsamı Notu')
-
-    ndt_request = fields.Selection([
-        ('yes', 'Evet'),
-        ('no', 'Hayır')
-    ], string='NDT Talebi')
-    ndt_request_note = fields.Char(string='NDT Talebi Notu')
-
-    certifications_documents = fields.Selection([
-        ('yes', 'Evet'),
-        ('no', 'Hayır')
-    ], string='Sertifikasyon ve Belgeler')
-    certifications_documents_note = fields.Char(string='Sertifikasyon ve Belgeler Notu')
-
-    mold_fixture_creation = fields.Selection([
-        ('yes', 'Evet'),
-        ('no', 'Hayır')
-    ], string='Kalıp veya Fikstür Yapımı')
-    mold_fixture_creation_note = fields.Char(string='Kalıp veya Fikstür Yapımı Notu')
-
-    design_activities = fields.Selection([
-        ('yes', 'Evet'),
-        ('no', 'Hayır')
-    ], string='Tasarım Faaliyetleri')
-    design_activities_note = fields.Char(string='Tasarım Faaliyetleri Notu')
-
-    special_packaging_request = fields.Selection([
-        ('yes', 'Evet'),
-        ('no', 'Hayır')
-    ], string='Özel Paketleme Talebi')
-    special_packaging_request_note = fields.Char(string='Özel Paketleme Talebi Notu')
     document_numbers = fields.Char(string='Document Numbers', compute='_compute_document_numbers')
     transportation_codes = fields.Char(string="Transportation Codes", compute='_compute_transportation_codes')
     date_done_list = fields.Char(string="Effective Date", compute='_compute_date_done_list')
-    
+    edespatch_date_list = fields.Char(string="EDespatch-Date", compute='_compute_edespatch_date_list')   
+    tax_selection = fields.Many2one("account.tax", string="Tax Selection",help="Select taxes to confirm and apply to all order lines." ,store=True)
+
+    def _compute_edespatch_date_list(self):
+        for order in self:
+            pickings = self.env['stock.picking'].search([('sale_id', '=', order.id)])
+            if pickings:
+                edespatch_dates_str = ', '.join(picking.edespatch_date.strftime("%Y-%m-%d") for picking in pickings if picking.edespatch_date)
+                order.edespatch_date_list = edespatch_dates_str
+            else:
+                order.edespatch_date_list = ''
+                
+    @api.depends('order_line.product_uom_qty', 'order_line.qty_invoiced')
+    def _compute_invoice_report(self):
+        for order in self:
+            # Varsayılan olarak "nothinginvoiced" varsayalım
+            invoice_status = "nothinginvoiced"
+            partially_invoiced = False
+            fully_invoiced = True
+
+            for line in order.order_line:
+                if line.qty_invoiced > 0:
+                    if line.qty_invoiced < line.product_uom_qty:
+                        partially_invoiced = True
+                        fully_invoiced = False
+                        break  # En az bir satır kısmen faturalandırıldıysa döngüden çık
+                    else:
+                        # Bu satır tamamen faturalandırıldı, döngü devam eder
+                        invoice_status = "fullyinvoiced"
+                else:
+                    fully_invoiced = False  # Eğer qty_invoiced 0 ise tamamen faturalandırılmamıştır
+
+            if partially_invoiced:
+                invoice_status = "partiallyinvoice"
+            elif fully_invoiced:
+                invoice_status = "fullyinvoiced"
+            else:
+                invoice_status = "nothinginvoiced"
+
+            order.invoice_report = invoice_status
 
     def _compute_document_numbers(self):
         for order in self:
@@ -142,17 +95,6 @@ class SaleOrder(models.Model):
                 order.date_done_list = date_dones_str
             else:
                 order.date_done_list = ''
-                
-    def _compute_edespatch_done_list(self):
-        for order in self:
-            pickings = self.env['stock.picking'].search([('sale_id', '=', order.id)])
-            if pickings:
-                date_dones = [picking.date_done.strftime("%Y-%m-%d") for picking in pickings if picking.date_done]
-                date_dones_str = ', '.join(date_dones)
-                order.date_done_list = date_dones_str
-            else:
-                order.date_done_list = ''
-        
 
     @api.model
     def create(self, vals):
@@ -177,7 +119,7 @@ class SaleOrder(models.Model):
         project_vals = {
             'name': record.name + '-' + record.customer_reference,
             'partner_id': record.partner_id.id,
-            # ... Daha fazla alanı burada ekleyebilirsiniz.
+            'company_id': 2,
         }
         project = self.env['project.project'].create(project_vals)
 
@@ -192,82 +134,52 @@ class SaleOrder(models.Model):
         })
 
         return record
-    
-    
-    def _compute_document_numbers(self):
-        for order in self:
-            pickings = self.env['stock.picking'].search([('sale_id', '=', order.id)])
-            if pickings:
-                document_numbers_str = ', '.join(picking.document_number for picking in pickings)
-                order.document_numbers = document_numbers_str
-            else:
-                order.document_numbers = ''
 
-    def _compute_transportation_codes(self):
-        for order in self:
-            pickings = self.env['stock.picking'].search([('sale_id', '=', order.id)])
-            if pickings:
-                transportation_codes_str = ', '.join(picking.transportation_code for picking in pickings)
-                order.transportation_codes = transportation_codes_str
-            else:
-                order.transportation_codes = ''
-
-    def _compute_effective_dates(self):
-        for order in self:
-            pickings = self.env['stock.picking'].search([('sale_id', '=', order.id)])
-            if pickings:
-                effective_dates_str = ', '.join(picking.effective_date.strftime("%Y-%m-%d") for picking in pickings if picking.effective_date)
-                order.effective_date_list = effective_dates_str
-            else:
-                order.effective_date_list = ''
-    def _compute_edespatch_dates(self):
-        for order in self:
-            pickings = self.env['stock.picking'].search([('sale_id', '=', order.id)])
-            if pickings:
-                edespatch_dates_str = ', '.join(picking.edespatch_date.strftime("%Y-%m-%d") for picking in pickings if picking.edespatch_date)
-                order.edespatch_date_list = edespatch_dates_str
-            else:
-                order.edespatch_date_list = ''
-                
     def action_confirm(self):
-
         # C-Delivery Date kontrolü
         if not self.commitment_date:
             raise UserError('The C-Delivery Date is mandatory! Please add this date and try again.')
-
+    
         # company_id 1 ise, standart onay işlemi yapılır ve özel işlemlerden kaçınılır
         if self.company_id.id == 1:
             return super(SaleOrder, self).action_confirm()
-
+    
         # Diğer durumlarda, öncelikle standart onay işlemi yapılır
         res = super(SaleOrder, self).action_confirm()
-
+    
         current_user = self.env.user  # Şu anki kullanıcıyı al
         incoterm = self.env['account.incoterms'].browse(10)
-
-        # Tüm satış siparişleri için döngü başlat
+    
         for order in self:
-            # İlişkili tüm satın alma siparişlerini bul
             purchase_orders = self.env['purchase.order'].search([('origin', '=', order.name)])
-            # İlişkili tüm satın alma siparişlerini güncelle
             for purchase_order in purchase_orders:
                 purchase_order.write({
-                    'user_id': current_user.id,  # Mevcut kullanıcıyı user_id alanına yaz
+                    'user_id': current_user.id,
                     'customer_reference': order.customer_reference,
                     'project_purchase': order.project_sales.id,
                     'incoterm_id': incoterm.id
                 })
-                # İlişkili tüm satın alma sipariş satırlarını güncelle
-                for po_line in purchase_order.order_line:
-                    # Satış siparişi satırını, ürün kimliği ile eşleştir
-                    so_line = order.order_line.filtered(lambda line: line.product_id == po_line.product_id)
-                    if so_line:
-                        new_price_unit = so_line.price_unit * 0.92  # Satış fiyatını 0.72 ile çarp
-                        po_line.write({
-                            'price_unit': new_price_unit,  # Yeni fiyatı güncelle
-                            'account_analytic_id': order.analytic_account_id.id,
-                        })
-
+    
+                # İlişkili tüm satın alma siparişi satırlarını sil
+                purchase_order.order_line.unlink()
+    
+                # Yeni satın alma siparişi satırlarını oluştur
+                for so_line in order.order_line:
+                    new_price_unit = so_line.price_unit * 0.92  # Örnek indirim oranı
+                    po_line = purchase_order.order_line.create({
+                        'order_id': purchase_order.id,
+                        'product_id': so_line.product_id.id,
+                        'product_qty': so_line.product_uom_qty,
+                        'product_uom': so_line.product_uom.id,
+                        'price_unit': new_price_unit,
+                        'name': so_line.name,
+                        'date_planned': purchase_order.date_order,
+                        'account_analytic_id': order.analytic_account_id.id,
+                        'sale_line_id': so_line.id,  # Satış siparişi satırını bağla
+                    })
+                    # Satış siparişi satırına geri bağlantı oluştur
+                    so_line.purchase_line_ids = [(4, po_line.id)]
+    
             # İlişkili tüm teslimat emirlerini bul
             delivery_orders = self.env['stock.picking'].search([('origin', '=', order.name)])
             # İlişkili tüm teslimat emirlerini güncelle
@@ -275,7 +187,7 @@ class SaleOrder(models.Model):
                 delivery_order.write({
                     'project_transfer': [(6, 0, order.project_sales.ids)],
                 })
-                
+    
         # Eğer customer_reference değiştiyse analitik hesap ve proje adını güncelle
         if self.rfq_reference != self.customer_reference:
             project = self.project_sales
@@ -286,6 +198,7 @@ class SaleOrder(models.Model):
             analytic_account.write({
                 'name': project.name
             })
+    
         return res
 
     def action_quotation_sent(self):
@@ -317,8 +230,25 @@ class SaleOrder(models.Model):
     def print_proposal_form(self):
         # id'si 2298 olan raporu indir
         return self.env.ref('__export__.ir_act_report_xml_2298_852ac486').report_action(self)
-
-    class SaleOrderLine(models.Model):
+        
+    def tax_button(self):
+        # Vergi referanslarını al
+        tax_to_clear_ids = [
+            self.env.ref('__export__.account_tax_125_7615b3b3').id,
+            self.env.ref('__export__.account_tax_208_e1b8c54a').id
+        ]
+        for order in self:
+            # Eğer seçilen vergi, boşaltılacak vergi ID'lerinden biriyse
+            if order.tax_selection.id in tax_to_clear_ids:
+                # Tüm satış siparişi satırlarındaki vergileri temizle
+                for line in order.order_line:
+                    line.tax_id = [(5, 0, 0)]
+            else:
+                # Aksi takdirde, seçilen vergiyi tüm satırlara uygula
+                for line in order.order_line:
+                    line.tax_id = [(6, 0, [order.tax_selection.id])]
+                    
+class SaleOrderLine(models.Model):
         _inherit = 'sale.order.line'
 
         product_delivery_date = fields.Date(string="Product Delivery Date")

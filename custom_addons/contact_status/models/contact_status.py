@@ -22,7 +22,14 @@ class Partner(models.Model):
     )
 
     contact_status_visibility = fields.Boolean(compute='_compute_contact_status_visibility')
-
+    
+    
+    @api.onchange('company_type')
+    def _onchange_company_type(self):
+        if self.company_type == 'person':
+            self.contact_type = False
+            self.contact_status = [(5, 0, 0)]
+            
     @api.depends('contact_status')
     def _compute_contact_status_visibility(self):
         for record in self:

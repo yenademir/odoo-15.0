@@ -5,6 +5,7 @@ class SaleOrder(models.Model):
     _inherit="sale.order"
     
     delivery_date_diff = fields.Float(string='YENA Delivery Performance', readonly=True, store="True", compute="_compute_delivery_date_diff")
+    quotation_time_diff=fields.Float(string='Quotation Time', readonly=True,store="true",compute="_compute_quotation_time_diff")
 
     @api.depends('commitment_date', 'picking_ids.arrival_date')
     def _compute_delivery_date_diff(self):
@@ -27,14 +28,26 @@ class SaleOrder(models.Model):
 
                     order.delivery_date_diff = diff_days
             else:
-                order.delivery_date_diff = False
+                order.delivery_date_diff = False   
                 
-    
+    @api.depends('quo_date', 'rfq_date')
+    def _compute_quotation_time_diff(self):
+        for order in self:
+            order.quotation_time_diff = 0.0
+            if order.quo_date and order.rfq_date:
+                quo_datetime = fields.Date.from_string(order.quo_date)
+                rfq_datetime = fields.Date.from_string(order.rfq_date)
+                
+                diff_days = (quo_datetime - rfq_datetime).days
+                order.quotation_time_diff = diff_days
+                
+
 
 class PurchaseOrder(models.Model):
     _inherit="purchase.order"
     
     delivery_date_diff = fields.Float(string='Delivery Performance', readonly=True, store="True", compute="_compute_delivery_date_diff")
+    quotation_time_diff=fields.Float(string='Quotation Time', readonly=True,store="true",)
     
     @api.depends('delivery_date', 'picking_ids.edespatch_date')
     def _compute_delivery_date_diff(self):
@@ -57,6 +70,19 @@ class PurchaseOrder(models.Model):
 
                     order.delivery_date_diff = diff_days
                     
+    @api.depends('rfq_sent_date', 'rfq_date')
+    def _compute_quotation_time_diff(self):
+        for order in self:
+            order.quotation_time_diff = 0.0
+            if order.rfq_sent_date and order.rfq_date:
+                rfq_sent_datetime = fields.Date.from_string(order.rfq_sent_date)
+                rfq_datetime = fields.Date.from_string(order.rfq_date)
+                
+                diff_days = (rfq_sent_datetime - rfq_datetime).days
+                order.quotation_time_diff = diff_days
+                    
+
+
 
 class BatchTransfer(models.Model):
     _inherit = 'stock.picking.batch'

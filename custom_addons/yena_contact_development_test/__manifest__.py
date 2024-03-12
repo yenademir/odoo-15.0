@@ -6,7 +6,7 @@
     'website': "https://yenaengineering.nl",
     'category': 'Contact',
     'license': 'LGPL-3',
-    'depends': ['base', 'account', 'contacts'],
+    'depends': ['base', 'account', 'contacts','l10n_tr_stock_edespatch'],
     'data': [
         'views/contact_development.xml',
         'security/ir.model.access.csv',

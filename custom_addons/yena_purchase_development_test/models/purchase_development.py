@@ -147,16 +147,27 @@ class PurchaseOrderLine(models.Model):
 
     ], string='Production Status')
 
-    @api.depends('qty_received', 'product_qty')
-    def _compute_production_status(self):
-        for record in self:
-            if record.qty_received == record.product_qty:
-                record.production_status = 'despatched'
-            elif 0 < record.qty_received < record.product_qty:
-                record.production_status = 'partially_despatched'
-            elif record.qty_received > record.product_qty:
-                record.production_status = 'whoops'
 
+
+    
+            
+            
+    @api.onchange('qty_received', 'product_qty')
+    def _onchange_production_status(self):
+        for record in self:
+        # Otomatik olarak ayarlanacak durumlar
+            if record.qty_received == record.product_qty and record.product_qty > 0:
+                new_status = 'despatched'
+            elif 0 < record.qty_received < record.product_qty:
+                new_status = 'partially_despatched'
+            elif record.qty_received > record.product_qty:
+                new_status = 'whoops'
+            else:
+                new_status = record.production_status
+
+            if new_status != record.production_status:
+                record.production_status = new_status
+                
 class StockMove(models.Model):
     _inherit = 'stock.move'
 

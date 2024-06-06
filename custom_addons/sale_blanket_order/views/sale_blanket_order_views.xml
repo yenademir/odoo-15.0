@@ -463,16 +463,6 @@
             </form>
         </field>
     </record>
-    <record id="sale_blanket_order_line_search" model="ir.ui.view">
-        <field name="name">sale.blanket.order.line.search</field>
-        <field name="model">sale.blanket.order.line</field>
-        <field name="arch" type="xml">
-            <search string="Search Sale Blanket Order Line">
-                <field name="product_id" />
-                <field name="date_schedule" />
-            </search>
-        </field>
-    </record>
     <record
         id="act_open_sale_blanket_order_lines_view_tree"
         model="ir.actions.act_window"

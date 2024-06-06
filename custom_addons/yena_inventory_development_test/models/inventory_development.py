@@ -95,18 +95,32 @@ class StockMove(models.Model):
 
     project_transfer = fields.Many2many(related="picking_id.project_transfer", string="Project Number")
     picking_type_id = fields.Many2one(related="picking_id.picking_type_id", string="Operation Type", store=True)
-    related_partner = fields.Many2one(related="picking_id.partner_id", string="Receive From / Delivery Adress", store=True)
+    related_partner = fields.Many2one(related="picking_id.partner_id", string="Receive From / Delivery Address", store=True)
     situation = fields.Selection(related="picking_id.situation", string="Situation", store=True)
     transportation_code = fields.Char(related="picking_id.transportation_code", string="Transportation Code", store=True)
     batch_id = fields.Many2one('stock.picking.batch', string='Batch', related='picking_id.batch_id', store=True, readonly=True)
     edespatch_delivery_type = fields.Selection(related="picking_id.edespatch_delivery_type", string="Delivery Type")
     scheduled_date = fields.Datetime(related='picking_id.scheduled_date', store=True, readonly=True)
     arrival_date = fields.Date(related='picking_id.arrival_date', store=True, readonly=True)
-    purchase_id=fields.Many2one(related='picking_id.purchase_id',string="Purchase Order")
-    edespatch_date=fields.Datetime(related='picking_id.edespatch_date',string="Actual Departure Date")
+    purchase_id = fields.Many2one(related='picking_id.purchase_id', string="Purchase Order")
+    edespatch_date = fields.Datetime(related='picking_id.edespatch_date', string="Actual Departure Date")
     airtag_url = fields.Char(string='Airtag Link', related='picking_id.batch_id.airtag_url', store=True, readonly=True)
     vehicle_type_id = fields.Many2one(string='Vehicle Type', related='picking_id.batch_id.vehicle_type_id', store=True, readonly=True)
-    
+    sales_cost = fields.Float(string='Sales Cost', compute='_compute_sales_cost')
+
+    @api.depends('state', 'product_id', 'product_uom_qty')
+    def _compute_sales_cost(self):
+        for move in self:
+            if move.state == 'done':
+                sale_order_lines = self.env['sale.order.line'].search([('product_id', '=', move.product_id.id)])
+                if sale_order_lines:
+                    sale_order_line = sale_order_lines[0]
+                    move.sales_cost = move.product_uom_qty * sale_order_line.price_unit
+                else:
+                    move.sales_cost = 0.0
+            else:
+                move.sales_cost = 0.0
+                
 class ProductTemplate(models.Model):
     _inherit = 'product.template'
 
